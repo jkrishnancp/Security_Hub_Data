@@ -1,0 +1,92 @@
+# Production Docker Compose with PostgreSQL
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: security-hub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: security_data_hub
+      POSTGRES_USER: security_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - security-hub-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U security_user -d security_data_hub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  security-data-hub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: security-data-hub
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://security_user:${POSTGRES_PASSWORD}@postgres:5432/security_data_hub
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    volumes:
+      # Persist uploaded files
+      - uploads_data:/app/public/uploads
+      - logs_data:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - security-hub-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/auth/session"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  nginx:
+    image: nginx:alpine
+    container_name: security-hub-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - security-data-hub
+    networks:
+      - security-hub-network
+
+  # Optional: Redis for session storage and caching
+  redis:
+    image: redis:7-alpine
+    container_name: security-hub-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - security-hub-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  security-hub-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  uploads_data:
+  logs_data:
+  redis_data:

@@ -1,0 +1,496 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ANALYST
+  VIEWER
+  BU_LEAD
+}
+
+enum IngestionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  PARTIAL
+}
+
+enum SeverityLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  WONT_FIX
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  active       Boolean  @default(true)
+  businessUnit String?  // For BU_LEAD role filtering
+  
+  // Profile fields
+  firstName    String?
+  lastName     String?
+  displayName  String?
+  phone        String?
+  department   String?
+  location     String?
+  bio          String?
+  avatar       String?  // URL to profile picture
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model IngestionLog {
+  id            String          @id @default(cuid())
+  filename      String
+  originalName  String          // Original filename before processing
+  fileType      String          // csv, pdf, xlsx
+  checksum      String
+  source        String          // Type of data source (tenable, falcon, phishing, scorecard, aws_security_hub)
+  rowsProcessed Int             @default(0)
+  reportDate    DateTime        // Date from the report content
+  importedDate  DateTime        @default(now()) // Date when file was imported
+  status        IngestionStatus @default(PENDING)
+  errorLog      String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  
+  @@map("ingestion_logs")
+}
+
+model Vulnerability {
+  id           String        @id @default(cuid())
+  assetName    String
+  businessUnit String
+  cveId        String?
+  severity     SeverityLevel
+  slaDate      DateTime?
+  status       IssueStatus   @default(OPEN)
+  description  String?
+  discoveredAt DateTime      @default(now())
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Link to scorecard issues
+  scorecardIssues ScorecardIssue[]
+
+  @@map("vulnerabilities")
+}
+
+model DetectionFalcon {
+  id          String        @id @default(cuid())
+  eventId     String        @unique
+  hostname    String
+  username    String?
+  severity    SeverityLevel
+  tactic      String?
+  technique   String?
+  status      IssueStatus   @default(OPEN)
+  description String?
+  detectedAt  DateTime      @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Link to scorecard issues
+  scorecardIssues ScorecardIssue[]
+
+  @@map("detection_falcon")
+}
+
+model DetectionSecureworks {
+  id            String        @id @default(cuid())
+  eventId       String        @unique
+  category      String
+  severity      SeverityLevel
+  responseAction String?
+  status        IssueStatus   @default(OPEN)
+  description   String?
+  detectedAt    DateTime      @default(now())
+  resolvedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Link to scorecard issues
+  scorecardIssues ScorecardIssue[]
+
+  @@map("detection_secureworks")
+}
+
+model PhishingJira {
+  id           String        @id @default(cuid())
+  issueId      String        @unique
+  status       IssueStatus   @default(OPEN)
+  priority     SeverityLevel @default(MEDIUM)
+  businessUnit String
+  timeToResolution Int?       // in hours
+  description  String?
+  reportedAt   DateTime      @default(now())
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Link to scorecard issues
+  scorecardIssues ScorecardIssue[]
+
+  @@map("phishing_jira")
+}
+
+model AwsSecurityHubFinding {
+  id                    String        @id @default(cuid())
+  controlId             String        @unique // ID field from CSV (e.g., "Config.1", "S3.8") 
+  title                 String        // Title of the security control
+  controlStatus         String        // Control Status: Failed, Passed, etc.
+  severity              SeverityLevel // Severity: Critical, High, Medium, Low
+  failedChecks          Int           @default(0) // Number of failed checks
+  unknownChecks         Int           @default(0) // Number of unknown checks
+  notAvailableChecks    Int           @default(0) // Number of not available checks
+  passedChecks          Int           @default(0) // Number of passed checks
+  relatedRequirements   String?       // NIST compliance mappings (long text)
+  customParameters      String?       // SUPPORTED/UNSUPPORTED status
+  
+  // System tracking fields
+  status                IssueStatus   @default(OPEN)
+  description           String?       // Additional notes/description
+  reportDate            DateTime?     // For batch tracking
+  foundAt               DateTime      @default(now())
+  resolvedAt            DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Link to scorecard issues
+  scorecardIssues ScorecardIssue[]
+
+  @@map("aws_security_hub_findings")
+}
+
+model MeetingMinute {
+  id          String   @id @default(cuid())
+  title       String
+  date        DateTime
+  attendees   String?  // JSON array of attendees
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Related action items
+  actionItems ActionItem[]
+
+  @@map("meeting_minutes")
+}
+
+model ActionItem {
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  assignee      String
+  dueDate       DateTime
+  status        IssueStatus @default(OPEN)
+  priority      SeverityLevel @default(MEDIUM)
+  businessUnit  String?
+  
+  // Link to meeting minute
+  meetingMinuteId String?
+  meetingMinute   MeetingMinute? @relation(fields: [meetingMinuteId], references: [id])
+  
+  completedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Link to scorecard issues
+  scorecardIssues ScorecardIssue[]
+
+  @@map("action_items")
+}
+
+model ThreatAdvisory {
+  id                      String        @id @default(cuid())
+  threatAdvisoryName      String
+  severity                String        // High, Medium, Low, Critical
+  netgearSeverity         String        // High, Low
+  impacted                Boolean       @default(false)
+  source                  String        // Tech Feeds, etc.
+  advisoryReleasedDate    String        // Store as string from CSV
+  notifiedDate           String        // Store as string from CSV
+  remarks                String?
+  etaForFix              String?       // Store as string from CSV
+  status                 IssueStatus   @default(OPEN)
+  reportDate             DateTime?     // For ingestion tracking
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  // Link to scorecard issues
+  scorecardIssues ScorecardIssue[]
+
+  @@map("threat_advisories")
+}
+
+model IssueReport {
+  id           String        @id @default(cuid())
+  issueId      String        @unique
+  severity     SeverityLevel
+  category     String
+  status       IssueStatus   @default(OPEN)
+  businessUnit String
+  description  String
+  openedDate   DateTime
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Link to scorecard issues
+  scorecardIssues ScorecardIssue[]
+
+  @@map("issue_reports")
+}
+
+model ScorecardCategory {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  baseScore       Float    @default(100.0)
+  weight          Float    @default(1.0)
+  currentScore    Float    @default(100.0)
+  lastCalculated  DateTime @default(now())
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("scorecard_categories")
+}
+
+model ScorecardIssue {
+  id           String        @id @default(cuid())
+  sourceType   String        // vulnerability, detection_falcon, etc.
+  sourceId     String        // ID of the source record
+  severity     SeverityLevel
+  category     String        // Maps to scorecard category
+  openedDate   DateTime
+  slaDate      DateTime?
+  status       IssueStatus   @default(OPEN)
+  businessUnit String
+  description  String
+  impact       Float         @default(1.0) // Score impact weight
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Polymorphic relations to source tables
+  vulnerability         Vulnerability?         @relation(fields: [sourceId], references: [id])
+  detectionFalcon       DetectionFalcon?       @relation(fields: [sourceId], references: [id])
+  detectionSecureworks  DetectionSecureworks?  @relation(fields: [sourceId], references: [id])
+  phishingJira         PhishingJira?          @relation(fields: [sourceId], references: [id])
+  awsSecurityHubFinding AwsSecurityHubFinding? @relation(fields: [sourceId], references: [id])
+  actionItem           ActionItem?            @relation(fields: [sourceId], references: [id])
+  threatAdvisory       ThreatAdvisory?        @relation(fields: [sourceId], references: [id])
+  issueReport          IssueReport?           @relation(fields: [sourceId], references: [id])
+
+  @@map("scorecard_issues")
+}
+
+model ScorecardRating {
+  id                        String   @id @default(cuid())
+  reportDate                DateTime @unique
+  company                   String?
+  generatedBy               String?
+  overallScore              Float
+  letterGrade               String   // A, B, C, D, F
+  breakdown                 String?  // JSON of category scores - keep existing field
+  threatIndicatorsScore     Float?
+  networkSecurityScore      Float?
+  dnsHealthScore            Float?
+  patchingCadenceScore      Float?
+  endpointSecurityScore     Float?
+  ipReputationScore         Float?
+  applicationSecurityScore  Float?
+  cubitScore                Float?
+  hackerChatterScore        Float?
+  informationLeakScore      Float?
+  socialEngineeringScore    Float?
+  industry                  String?
+  companyWebsite            String?
+  findingsOnOpenPorts       Int?
+  siteVulnerabilities       Int?
+  malwareDiscovered         Int?
+  leakedInformation         Int?
+  numberOfIpAddressesScanned Int?
+  numberOfDomainNamesScanned Int?
+  businessUnit              String?  // For BU-specific scorecards
+  createdAt                 DateTime @default(now())
+
+  @@map("scorecard_ratings")
+}
+
+model ScorecardIssueDetail {
+  id                    String        @id @default(cuid())
+  issueId               String        @unique
+  factorName            String
+  issueTypeTitle        String
+  issueTypeCode         String
+  issueTypeSeverity     SeverityLevel
+  issueRecommendation   String?
+  firstSeen             DateTime?
+  lastSeen              DateTime?
+  ipAddresses           String?
+  hostname              String?
+  subdomain             String?
+  target                String?
+  ports                 String?
+  status                String        @default("active")
+  cveId                 String?
+  description           String?
+  timeSincePublished    String?
+  timeOpenSincePublished String?
+  cookieName            String?
+  data                  String?
+  commonName            String?
+  keyLength             String?
+  usingRC4              Boolean?
+  issuerOrganizationName String?
+  provider              String?
+  detectedService       String?
+  product               String?
+  version               String?
+  platform              String?
+  browser               String?
+  destinationIps        String?
+  malwareFamily         String?
+  malwareType           String?
+  detectionMethod       String?
+  label                 String?
+  initialUrl            String?
+  finalUrl              String?
+  requestChain          String?
+  headers               String?
+  analysis              String?
+  percentSimilarCompanies Float?
+  averageFindings       Float?
+  issueTypeScoreImpact  Float       @default(0.0)
+  reportDate            DateTime
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@map("scorecard_issue_details")
+}
+
+model OpenItem {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  assignee    String?
+  priority    String?     // High, Medium, Low, Critical, etc.
+  status      String      // To Do, In Progress, Done, Closed, etc.
+  createdAt   DateTime
+  updatedAt   DateTime?
+  closedAt    DateTime?
+  reportDate  DateTime?   // For tracking import batches
+  
+  // Additional Jira-style fields
+  issueType   String?     // Bug, Task, Story, etc.
+  labels      String?     // JSON array of labels
+  epic        String?     // Epic name/reference
+  sprint      String?     // Sprint information
+  storyPoints Int?        // Story points if applicable
+  dueDate     DateTime?   // Due date
+  resolution  String?     // Resolution reason
+  reporter    String?     // Who reported/created the issue
+  
+  // System tracking
+  importedAt  DateTime    @default(now())
+  updatedAtSystem DateTime @updatedAt
+
+  @@map("open_items")
+}
+
+model FalconDetection {
+  id                               String    @id @default(cuid())
+  DetectDate_UTC_readable          String?   // From CSV - date as string
+  Severity                         String?   // Critical, High, Medium, Low, Informational
+  Tactic                           String?   // MITRE ATT&CK Tactic
+  ProductType                      String?   // Product/service that detected
+  Hostname                         String?   // Affected hostname
+  Filename                         String?   // Affected filename
+  PatternDispositionDescription    String?   // Description of the detection
+  false_positive                   Boolean   @default(false) // False positive flag
+  
+  // Additional normalized fields that might be in CrowdStrike CSV
+  DetectDescription                String?
+  ComputerName                     String?
+  UserName                         String?
+  ProcessName                      String?
+  CommandLine                      String?
+  IOCType                          String?
+  IOCValue                         String?
+  Confidence                       String?
+  Technique                        String?   // MITRE ATT&CK Technique
+  PolicyName                       String?
+  PolicyType                       String?
+  
+  // System fields
+  raw_json                         String    // Full CSV row as JSON
+  ingested_on                      DateTime  @default(now())
+  createdAt                        DateTime  @default(now())
+  updatedAt                        DateTime  @updatedAt
+
+  @@map("falcon_detections")
+}
+
+model SecureworksAlert {
+  id                               String        @id @default(cuid())
+  
+  // Essential fields from Secureworks CSV - simplified format
+  alert_id                         String        @unique // Unique alert identifier
+  title                            String?       // Alert title/name
+  severity                         SeverityLevel @default(MEDIUM) // CRITICAL, HIGH, MEDIUM, LOW, INFO
+  threat_score                     Float?        // Threat score (0-10)
+  detector                         String?       // Detection engine/detector name
+  sensor_type                      String?       // Type of sensor that detected this
+  domain                           String?       // Associated domain
+  combined_username                String?       // Username information
+  source_ip                        String?       // Source IP address
+  destination_ip                   String?       // Destination IP address
+  hostname                         String?       // Associated hostname
+  investigations                   String?       // Investigation details
+  confidence                       Float?        // Confidence score (0-1)
+  mitre_attack                     String?       // MITRE ATT&CK techniques
+  status                           IssueStatus   @default(OPEN) // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  status_reason                    String?       // Status reason/notes
+  tenant_id                        String?       // Tenant identifier (143085)
+  occurrence_count                 Int?          // Number of occurrences
+  description                      String?       // Full description
+  
+  // Timestamps - using proper DateTime fields
+  created_at                       DateTime      @default(now()) // When alert was created
+  detected_at                      DateTime?     // When the threat was first detected
+  
+  // System tracking
+  false_positive                   Boolean       @default(false) // False positive flag
+  ingested_on                      DateTime      @default(now()) // When imported to our system
+  updated_at                       DateTime      @updatedAt      // Last system update
+
+  @@map("secureworks_alerts")
+}

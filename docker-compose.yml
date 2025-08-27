@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  security-data-hub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: security-data-hub
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./prisma/prisma/prisma/dev.db
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-secret-key-here}
+    volumes:
+      # Persist database
+      - ./data/database:/app/prisma/prisma/prisma
+      # Persist uploaded files
+      - ./data/uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/auth/session"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - security-hub-network
+
+  # Optional: Nginx reverse proxy for SSL termination and better performance
+  nginx:
+    image: nginx:alpine
+    container_name: security-hub-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - security-data-hub
+    networks:
+      - security-hub-network
+
+networks:
+  security-hub-network:
+    driver: bridge
+
+volumes:
+  database_data:
+  uploads_data:

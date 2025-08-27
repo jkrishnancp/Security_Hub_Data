@@ -1,0 +1,27 @@
+-- CreateTable
+CREATE TABLE "falcon_detections" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "DetectDate_UTC_readable" TEXT,
+    "Severity" TEXT,
+    "Tactic" TEXT,
+    "ProductType" TEXT,
+    "Hostname" TEXT,
+    "Filename" TEXT,
+    "PatternDispositionDescription" TEXT,
+    "false_positive" BOOLEAN NOT NULL DEFAULT false,
+    "DetectDescription" TEXT,
+    "ComputerName" TEXT,
+    "UserName" TEXT,
+    "ProcessName" TEXT,
+    "CommandLine" TEXT,
+    "IOCType" TEXT,
+    "IOCValue" TEXT,
+    "Confidence" TEXT,
+    "Technique" TEXT,
+    "PolicyName" TEXT,
+    "PolicyType" TEXT,
+    "raw_json" TEXT NOT NULL,
+    "ingested_on" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
