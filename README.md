@@ -92,7 +92,14 @@ npm install
 
 # Set up environment variables
 cp .env.production .env.local
-# Edit .env.local with development values
+
+# Generate a secure secret for NextAuth
+openssl rand -base64 32
+
+# Edit .env.local with development values:
+# - Replace NEXTAUTH_SECRET with the generated secret
+# - Set NEXTAUTH_URL="http://localhost:3000"
+# - Keep DATABASE_URL as is for SQLite development
 
 # Initialize database
 npx prisma db push
@@ -320,6 +327,18 @@ tar -xzf ./backups/backup_20240101_120000.tar.gz -C ./data/
 ## 🚨 Troubleshooting
 
 ### Common Issues
+
+**NEXTAUTH_SECRET Missing Error**
+```bash
+# Error: Please set NEXTAUTH_SECRET in .env file
+# Solution: Generate a secure secret and add it to your .env file
+
+# Generate a secure random string
+openssl rand -base64 32
+
+# Add to your .env.local or .env file:
+NEXTAUTH_SECRET="your-generated-secret-here"
+```
 
 **Port Already in Use**
 ```bash

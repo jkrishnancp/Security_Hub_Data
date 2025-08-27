@@ -58,20 +58,18 @@ ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
 # Create startup script
-COPY --chown=nextjs:nodejs <<EOF /app/start.sh
-#!/bin/sh
-set -e
-
-# Initialize database if it doesn't exist
-if [ ! -f "./prisma/prisma/prisma/dev.db" ]; then
-  echo "Initializing database..."
-  npx prisma db push
-  echo "Database initialized"
-fi
-
-# Start the application
-exec node server.js
-EOF
+RUN echo '#!/bin/sh\n\
+set -e\n\
+\n\
+# Initialize database if it does not exist\n\
+if [ ! -f "./prisma/prisma/prisma/dev.db" ]; then\n\
+  echo "Initializing database..."\n\
+  npx prisma db push\n\
+  echo "Database initialized"\n\
+fi\n\
+\n\
+# Start the application\n\
+exec node server.js' > /app/start.sh
 
 RUN chmod +x /app/start.sh
 
