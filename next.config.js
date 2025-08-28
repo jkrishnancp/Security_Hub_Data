@@ -14,6 +14,9 @@ const nextConfig = {
   // Enable standalone output for Docker
   output: 'standalone',
   
+  // Skip static generation for dynamic routes
+  trailingSlash: false,
+  
   // Security headers
   async headers() {
     return [

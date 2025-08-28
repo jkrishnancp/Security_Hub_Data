@@ -20,9 +20,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error checking onboarding status:', error);
-    return NextResponse.json(
-      { error: 'Failed to check setup status' },
-      { status: 500 }
-    );
+    // If database is not accessible, assume system needs onboarding
+    return NextResponse.json({
+      isSetup: false,
+      needsOnboarding: true
+    });
   }
 }

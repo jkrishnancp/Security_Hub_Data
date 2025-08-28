@@ -48,14 +48,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 RUN mkdir -p ./prisma/prisma/prisma ./public/uploads/avatars
 RUN chown -R nextjs:nodejs ./prisma ./public/uploads
 
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-# Create startup script
+# Create startup script before switching to nextjs user
 RUN echo '#!/bin/sh\n\
 set -e\n\
 \n\
@@ -70,5 +63,13 @@ fi\n\
 exec node server.js' > /app/start.sh
 
 RUN chmod +x /app/start.sh
+RUN chown nextjs:nodejs /app/start.sh
+
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
 
 CMD ["/app/start.sh"]

@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Shield, ArrowRight, BarChart, FileText, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,8 +10,30 @@ import { Card, CardContent } from '@/components/ui/card';
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [isSetup, setIsSetup] = useState<boolean | null>(null);
 
-  if (status === 'loading') {
+  // Check if system is set up (has any users)
+  useEffect(() => {
+    const checkSetupStatus = async () => {
+      try {
+        const response = await fetch('/api/onboarding/status');
+        if (response.ok) {
+          const { isSetup } = await response.json();
+          setIsSetup(isSetup);
+        }
+      } catch (error) {
+        console.error('Error checking setup status:', error);
+        setIsSetup(false); // Assume not set up on error
+      }
+    };
+
+    // Only check setup status if user is not logged in
+    if (status !== 'loading' && !session) {
+      checkSetupStatus();
+    }
+  }, [status, session]);
+
+  if (status === 'loading' || (isSetup === null && !session)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -140,7 +162,7 @@ export default function Home() {
           <div className="flex justify-center space-x-4">
             <Button 
               size="lg" 
-              onClick={() => router.push('/auth/login')}
+              onClick={() => router.push(isSetup ? '/auth/login' : '/onboarding')}
               className="flex items-center space-x-2"
             >
               <span>Get Started</span>
@@ -229,7 +251,7 @@ export default function Home() {
           </p>
           <Button 
             size="lg" 
-            onClick={() => router.push('/auth/login')}
+            onClick={() => router.push(isSetup ? '/auth/login' : '/onboarding')}
             className="flex items-center space-x-2 mx-auto"
           >
             <span>Start Your Security Journey</span>
