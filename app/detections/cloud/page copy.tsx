@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
-import { METALLIC_COLORS, getSeverityColor, getSeverityBadgeClass } from '@/lib/theme-config';
+import { METALLIC_COLORS, getSeverityBadgeClass } from '@/lib/theme-config';
 import DetailPanel from '@/components/detail-panel';
 import {
   BarChart,
@@ -87,7 +87,7 @@ function getRange(days: number | null) {
   return { start, end };
 }
 
-// Use metallic theme colors
+// ---------- Color maps (typed) ----------
 const severityColors = {
   Critical: METALLIC_COLORS.critical,
   High: METALLIC_COLORS.high,
@@ -95,13 +95,19 @@ const severityColors = {
   Low: METALLIC_COLORS.low,
   Info: METALLIC_COLORS.info,
   Unknown: METALLIC_COLORS.tertiary,
-};
+} as const;
+type Severity = keyof typeof severityColors;
+const isSeverity = (s: unknown): s is Severity =>
+  typeof s === 'string' && s in severityColors;
 
 const statusColors = {
   Failed: METALLIC_COLORS.critical,
   Passed: METALLIC_COLORS.primary, // Use primary instead of success
   Unknown: METALLIC_COLORS.tertiary,
-};
+} as const;
+type ControlStatus = keyof typeof statusColors;
+const isControlStatus = (s: unknown): s is ControlStatus =>
+  typeof s === 'string' && s in statusColors;
 
 const serviceColors = [
   METALLIC_COLORS.primary,
@@ -199,26 +205,28 @@ export default function CloudSecurity() {
 
   // Charts data
   const severityCounts = useMemo(() => {
-    const m = new Map();
+    const m = new Map<Severity, number>();
     for (const r of filtered) {
-      const k = r.severity || "Unknown";
-      m.set(k, (m.get(k) || 0) + 1);
+      const sev = r?.severity;
+      const key: Severity = isSeverity(sev) ? sev : 'Unknown';
+      m.set(key, (m.get(key) ?? 0) + 1);
     }
-    return Array.from(m, ([name, value]) => ({ name, value, fill: severityColors[name] || severityColors.Unknown }));
+    return Array.from(m, ([name, value]) => ({ name, value, fill: severityColors[name] }));
   }, [filtered]);
 
   const statusCounts = useMemo(() => {
-    const m = new Map();
+    const m = new Map<ControlStatus, number>();
     for (const r of filtered) {
-      const k = r.controlStatus || "Unknown";
-      m.set(k, (m.get(k) || 0) + 1);
+      const st = r?.controlStatus;
+      const key: ControlStatus = isControlStatus(st) ? st : 'Unknown';
+      m.set(key, (m.get(key) ?? 0) + 1);
     }
-    return Array.from(m, ([name, value]) => ({ name, value, fill: statusColors[name] || statusColors.Unknown }));
+    return Array.from(m, ([name, value]) => ({ name, value, fill: statusColors[name] }));
   }, [filtered]);
 
   // Extract AWS service from controlId (e.g., "S3.8" -> "S3", "EC2.9" -> "EC2")
   const serviceCounts = useMemo(() => {
-    const m = new Map();
+    const m = new Map<string, number>();
     for (const r of filtered) {
       const controlId = r.controlId || "";
       const service = controlId.split('.')[0] || "Unknown";
@@ -238,7 +246,7 @@ export default function CloudSecurity() {
   }, [filtered]);
 
   const trendingByDay = useMemo(() => {
-    const m = new Map();
+    const m = new Map<string, number>();
     for (const r of filtered) {
       const d = toDay(r.foundAt || r.createdAt);
       if (!d) continue;
@@ -250,7 +258,7 @@ export default function CloudSecurity() {
 
   // Compliance breakdown - extract first NIST requirement for grouping
   const complianceCounts = useMemo(() => {
-    const m = new Map();
+    const m = new Map<string, number>();
     for (const r of filtered) {
       const requirements = r.relatedRequirements || "";
       const firstReq = requirements.split(',')[0]?.trim() || "No Compliance";
@@ -267,7 +275,6 @@ export default function CloudSecurity() {
 
   // Table rows: show Critical/High priority items by default, with additional filters
   const tableRows = useMemo(() => {
-    const highPriority = new Set(["critical", "high"]);
     return filtered
       .filter((r) => tableSeverityFilter === "ALL" || (r.severity || "").toLowerCase() === tableSeverityFilter.toLowerCase())
       .filter((r) => tableControlStatusFilter === "ALL" || (r.controlStatus || "").toLowerCase() === tableControlStatusFilter.toLowerCase())
@@ -283,7 +290,7 @@ export default function CloudSecurity() {
       })
       .sort((a, b) => {
         // Sort by severity first, then by failed checks
-        const severityOrder = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
+        const severityOrder: Record<string, number> = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1 };
         const aSev = severityOrder[a.severity] || 0;
         const bSev = severityOrder[b.severity] || 0;
         if (aSev !== bSev) return bSev - aSev;
@@ -932,11 +939,11 @@ function FindingsTable({ items, isDark, onRowClick }: { items: any[]; isDark: bo
   const sorted = useMemo(() => {
     const arr = [...items];
     arr.sort((a, b) => {
-      let av, bv;
+      let av: any, bv: any;
       switch (sortKey) {
         case "severity":
           // Sort by severity priority: Critical > High > Medium > Low > Unknown
-          const severityOrder = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1, 'Unknown': 0 };
+          const severityOrder: Record<string, number> = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1, 'Unknown': 0 };
           av = severityOrder[a.severity] || 0;
           bv = severityOrder[b.severity] || 0;
           break;
