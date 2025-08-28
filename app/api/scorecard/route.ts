@@ -151,12 +151,15 @@ export async function GET(request: NextRequest) {
         trend: calculateTrend(latestRating.dnsHealthScore, previousRating?.dnsHealthScore || null)
       },
       {
-        name: 'Patching Cadence',
-        score: latestRating.patchingCadenceScore || 0,
-        weight: 1.0,
-        issues: issues.filter(i => i.factorName.toLowerCase().includes('patching')).length,
-        trend: calculateTrend(latestRating.patchingCadenceScore, previousRating?.patchingCadenceScore)
-      },
+       name: 'Patching Cadence',
+       score: latestRating.patchingCadenceScore ?? 0,  // use ?? instead of ||
+       weight: 1.0,
+       issues: issues.filter(i => i.factorName.toLowerCase().includes('patching')).length,
+       trend: calculateTrend(
+      latestRating.patchingCadenceScore ?? null,
+       previousRating?.patchingCadenceScore ?? null
+       )
+       },
       {
         name: 'Endpoint Security',
         score: latestRating.endpointSecurityScore || 0,
