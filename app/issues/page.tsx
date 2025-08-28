@@ -27,7 +27,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { METALLIC_COLORS, getMetallicColor } from '@/lib/theme-config';
+import { METALLIC_COLORS } from '@/lib/theme-config';
 
 // Chart colors using metallic theme
 const CHART_COLORS = {
@@ -413,7 +413,7 @@ export default function ThreatAdvisoriesPage() {
                       mode="range"
                       defaultMonth={dateRange.from}
                       selected={dateRange}
-                      onSelect={setDateRange}
+                      onSelect={(range) => setDateRange({ from: range?.from, to: range?.to })}
                       numberOfMonths={2}
                     />
                   </PopoverContent>

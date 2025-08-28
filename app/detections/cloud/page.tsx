@@ -75,7 +75,7 @@ export default function CloudFindings() {
       if (!cur || priority.indexOf(status) < priority.indexOf(cur)) bestForControl.set(id, status);
     }
     const counts: Record<string, number> = { Passed: 0, Failed: 0, "No data": 0, Unknown: 0, Disabled: 0 };
-    for (const s of bestForControl.values()) counts[s] = (counts[s] || 0) + 1;
+    Array.from(bestForControl.values()).forEach(s => counts[s] = (counts[s] || 0) + 1);
     const total = bestForControl.size;
     const passed = counts.Passed || 0;
     const failed = counts.Failed || 0;

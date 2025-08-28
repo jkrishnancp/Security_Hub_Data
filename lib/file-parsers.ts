@@ -1,6 +1,6 @@
 import * as ExcelJS from 'exceljs';
 import * as csv from 'fast-csv';
-import * as pdfParse from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 import { SeverityLevel, IssueStatus } from '@prisma/client';
 
 export interface ParsedData {
@@ -66,9 +66,13 @@ export class FileParser {
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber > 1) {
         const rowData: any = {};
-        row.values.forEach((value, index) => {
-          rowData[headers[index]] = value;
-        });
+        if (row.values && Array.isArray(row.values)) {
+          (row.values as any[]).forEach((value, index) => {
+            if (headers[index]) {
+              rowData[headers[index]] = value;
+            }
+          });
+        }
         data.push(rowData);
       }
     });
@@ -84,7 +88,8 @@ export class FileParser {
 
   private static async parsePdf(file: File): Promise<ParsedData> {
     const arrayBuffer = await file.arrayBuffer();
-    const pdfData = await pdfParse(arrayBuffer);
+    const buffer = Buffer.from(arrayBuffer);
+    const pdfData = await pdfParse(buffer);
     
     // Parse scorecard PDF format
     if (file.name.toLowerCase().includes('scorecard')) {

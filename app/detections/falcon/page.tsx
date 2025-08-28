@@ -176,7 +176,7 @@ export default function FalconDetections() {
     const s = startDate ? startDate.getTime() : -Infinity;
     const e = endDate ? endDate.getTime() : Infinity;
     const q = query.trim().toLowerCase();
-    const isFalsePos = (v) => {
+    const isFalsePos = (v: any) => {
       if (v === true || v === 1 || v === "1") return true;
       if (typeof v === "string") return v.toLowerCase() === "true" || v.toLowerCase() === "yes" || v.toLowerCase() === "y" || v.toLowerCase() === "false_positive";
       return false;
@@ -204,7 +204,7 @@ export default function FalconDetections() {
       const k = r.Severity || "Unknown";
       m.set(k, (m.get(k) || 0) + 1);
     }
-    return Array.from(m, ([name, value]) => ({ name, value, fill: severityColors[name] || severityColors.Unknown }));
+    return Array.from(m, ([name, value]) => ({ name, value, fill: severityColors[name as keyof typeof severityColors] || severityColors.Unknown }));
   }, [filtered]);
 
   const tacticCounts = useMemo(() => {
@@ -255,7 +255,7 @@ export default function FalconDetections() {
       .filter((r) => tableProductTypeFilter === "ALL" || (r.ProductType || "").toLowerCase().includes(tableProductTypeFilter.toLowerCase()))
       .filter((r) => tableTacticFilter === "ALL" || (r.Tactic || "").toLowerCase().includes(tableTacticFilter.toLowerCase()))
       .filter((r) => tableHostnameFilter === "ALL" || (r.Hostname || "").toLowerCase().includes(tableHostnameFilter.toLowerCase()))
-      .sort((a, b) => new Date(b.DetectDate_UTC_readable) - new Date(a.DetectDate_UTC_readable));
+      .sort((a, b) => new Date(b.DetectDate_UTC_readable).getTime() - new Date(a.DetectDate_UTC_readable).getTime());
   }, [filtered, tableSeverityFilter, tableProductTypeFilter, tableTacticFilter, tableHostnameFilter]);
 
   // Extract unique values for filter dropdowns from the base filtered data
@@ -858,8 +858,8 @@ function DetectionsTable({ items, isDark, onRowClick }: { items: any[]; isDark: 
         case "Severity":
           // Sort by severity priority: Critical > High > Medium > Low > Unknown
           const severityOrder = { 'Critical': 4, 'High': 3, 'Medium': 2, 'Low': 1, 'Unknown': 0 };
-          av = severityOrder[a.Severity] || 0;
-          bv = severityOrder[b.Severity] || 0;
+          av = severityOrder[a.Severity as keyof typeof severityOrder] || 0;
+          bv = severityOrder[b.Severity as keyof typeof severityOrder] || 0;
           break;
         case "ProductType":
         case "Hostname":

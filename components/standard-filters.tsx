@@ -281,7 +281,7 @@ export function StandardFilters({
                 defaultMonth={dateRange.from}
                 selected={dateRange}
                 onSelect={(range) => {
-                  onDateRangeChange(range || { from: undefined, to: undefined });
+                  onDateRangeChange({ from: range?.from, to: range?.to });
                   if (range?.from && range?.to) {
                     onDatePresetChange('CUSTOM');
                   }

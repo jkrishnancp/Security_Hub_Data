@@ -271,7 +271,7 @@ export default function SecureworksDetections() {
       const k = r.severity || "Unknown";
       m.set(k, (m.get(k) || 0) + 1);
     }
-    return Array.from(m, ([name, value]) => ({ name, value, fill: severityColors[name] || severityColors.Unknown }));
+    return Array.from(m, ([name, value]) => ({ name, value, fill: severityColors[name as keyof typeof severityColors] || severityColors.Unknown }));
   }, [filteredChartData]);
 
   const statusCounts = useMemo(() => {
@@ -318,7 +318,7 @@ export default function SecureworksDetections() {
 
   // Table rows: data is already filtered by API, just sort by date
   const tableRows = useMemo(() => {
-    return filtered.sort((a, b) => new Date(b.created_at) as any - new Date(a.created_at) as any);
+    return filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }, [filtered]);
 
   // Extract unique values for filter dropdowns from chart data (complete dataset)

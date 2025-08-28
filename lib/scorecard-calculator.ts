@@ -109,7 +109,7 @@ export class ScorecardCalculator {
     let maxPossibleImpact = 0;
 
     for (const issue of issues) {
-      const severityWeight = SEVERITY_WEIGHTS[issue.severity] || 1;
+      const severityWeight = SEVERITY_WEIGHTS[issue.severity as keyof typeof SEVERITY_WEIGHTS] || 1;
       const slaMultiplier = this.getSlaMultiplier(issue);
       const impact = severityWeight * slaMultiplier;
       
@@ -137,7 +137,7 @@ export class ScorecardCalculator {
   }
 
   private static calculateIssueImpact(issue: any): number {
-    const severityWeight = SEVERITY_WEIGHTS[issue.severity] || 1;
+    const severityWeight = SEVERITY_WEIGHTS[issue.severity as keyof typeof SEVERITY_WEIGHTS] || 1;
     const slaMultiplier = this.getSlaMultiplier(issue);
     return severityWeight * slaMultiplier * (issue.impact || 1);
   }
