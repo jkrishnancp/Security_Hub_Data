@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // Get previous rating for trend comparison
     const previousRating = await prisma.scorecardRating.findFirst({
       where: {
-        reportDate: { lt: latestRating?.reportDate }
+        reportDate: { lt: latestRating?.reportDate ?? undefined }
       },
       orderBy: { reportDate: 'desc' }
     });
@@ -121,12 +121,17 @@ export async function GET(request: NextRequest) {
       }
       
       // If same severity, sort by score impact
-      return (b.issueTypeScoreImpact || 0) - (a.issueTypeScoreImpact || 0);
+      return (b.issueTypeScoreImpact ?? 0) - (a.issueTypeScoreImpact ?? 0);
     });
 
-    // Calculate trends for each category
+    // Helper: normalize possibly-undefined numbers to number|null
+    const n = (v: number | null | undefined): number | null => v ?? null;
+
+    // Calculate trends for each category (treat only null as "missing")
     const calculateTrend = (current: number | null, previous: number | null) => {
-      if (!current || !previous) return { change: 0, direction: 'none' as const };
+      if (current === null || previous === null) {
+        return { change: 0, direction: 'none' as const };
+      }
       const change = current - previous;
       return {
         change: Math.abs(change),
@@ -138,76 +143,73 @@ export async function GET(request: NextRequest) {
     const categories = [
       {
         name: 'Network Security',
-        score: latestRating.networkSecurityScore || 0,
+        score: latestRating.networkSecurityScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('network')).length,
-        trend: calculateTrend(latestRating.networkSecurityScore, previousRating?.networkSecurityScore || null)
+        trend: calculateTrend(n(latestRating.networkSecurityScore), n(previousRating?.networkSecurityScore))
       },
       {
         name: 'DNS Health',
-        score: latestRating.dnsHealthScore || 0,
+        score: latestRating.dnsHealthScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('dns')).length,
-        trend: calculateTrend(latestRating.dnsHealthScore, previousRating?.dnsHealthScore || null)
+        trend: calculateTrend(n(latestRating.dnsHealthScore), n(previousRating?.dnsHealthScore))
       },
       {
-       name: 'Patching Cadence',
-       score: latestRating.patchingCadenceScore ?? 0,  // use ?? instead of ||
-       weight: 1.0,
-       issues: issues.filter(i => i.factorName.toLowerCase().includes('patching')).length,
-       trend: calculateTrend(
-      latestRating.patchingCadenceScore ?? null,
-       previousRating?.patchingCadenceScore ?? null
-       )
-       },
+        name: 'Patching Cadence',
+        score: latestRating.patchingCadenceScore ?? 0,
+        weight: 1.0,
+        issues: issues.filter(i => i.factorName.toLowerCase().includes('patching')).length,
+        trend: calculateTrend(n(latestRating.patchingCadenceScore), n(previousRating?.patchingCadenceScore))
+      },
       {
         name: 'Endpoint Security',
-        score: latestRating.endpointSecurityScore || 0,
+        score: latestRating.endpointSecurityScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('endpoint')).length,
-        trend: calculateTrend(latestRating.endpointSecurityScore, previousRating?.endpointSecurityScore)
+        trend: calculateTrend(n(latestRating.endpointSecurityScore), n(previousRating?.endpointSecurityScore))
       },
       {
         name: 'IP Reputation',
-        score: latestRating.ipReputationScore || 0,
+        score: latestRating.ipReputationScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('ip')).length,
-        trend: calculateTrend(latestRating.ipReputationScore, previousRating?.ipReputationScore)
+        trend: calculateTrend(n(latestRating.ipReputationScore), n(previousRating?.ipReputationScore))
       },
       {
         name: 'Application Security',
-        score: latestRating.applicationSecurityScore || 0,
+        score: latestRating.applicationSecurityScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('application')).length,
-        trend: calculateTrend(latestRating.applicationSecurityScore, previousRating?.applicationSecurityScore)
+        trend: calculateTrend(n(latestRating.applicationSecurityScore), n(previousRating?.applicationSecurityScore))
       },
       {
         name: 'Cubit Score',
-        score: latestRating.cubitScore || 0,
+        score: latestRating.cubitScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('cubit')).length,
-        trend: calculateTrend(latestRating.cubitScore, previousRating?.cubitScore)
+        trend: calculateTrend(n(latestRating.cubitScore), n(previousRating?.cubitScore))
       },
       {
         name: 'Hacker Chatter',
-        score: latestRating.hackerChatterScore || 0,
+        score: latestRating.hackerChatterScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('hacker')).length,
-        trend: calculateTrend(latestRating.hackerChatterScore, previousRating?.hackerChatterScore)
+        trend: calculateTrend(n(latestRating.hackerChatterScore), n(previousRating?.hackerChatterScore))
       },
       {
         name: 'Information Leak',
-        score: latestRating.informationLeakScore || 0,
+        score: latestRating.informationLeakScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('information') || i.factorName.toLowerCase().includes('leak')).length,
-        trend: calculateTrend(latestRating.informationLeakScore, previousRating?.informationLeakScore)
+        trend: calculateTrend(n(latestRating.informationLeakScore), n(previousRating?.informationLeakScore))
       },
       {
         name: 'Social Engineering',
-        score: latestRating.socialEngineeringScore || 0,
+        score: latestRating.socialEngineeringScore ?? 0,
         weight: 1.0,
         issues: issues.filter(i => i.factorName.toLowerCase().includes('social')).length,
-        trend: calculateTrend(latestRating.socialEngineeringScore, previousRating?.socialEngineeringScore)
+        trend: calculateTrend(n(latestRating.socialEngineeringScore), n(previousRating?.socialEngineeringScore))
       }
     ].sort((a, b) => a.score - b.score); // Sort by score ascending
 
@@ -219,7 +221,7 @@ export async function GET(request: NextRequest) {
       category: issue.factorName,
       businessUnit: latestRating.company || 'NETGEAR',
       openedDate: issue.firstSeen?.toISOString() || issue.createdAt.toISOString(),
-      impactScore: issue.issueTypeScoreImpact
+      impactScore: issue.issueTypeScoreImpact ?? null
     }));
 
     // Get available dates for date picker
@@ -231,12 +233,12 @@ export async function GET(request: NextRequest) {
     });
 
     const scorecard = {
-      overallScore: latestRating.threatIndicatorsScore || 0, // Use Threat Indicators as Overall Security Rating
+      overallScore: latestRating.threatIndicatorsScore ?? 0, // Use Threat Indicators as Overall Security Rating
       letterGrade: latestRating.letterGrade,
       categories,
       topIssues,
-      numberOfIpAddressesScanned: latestRating.numberOfIpAddressesScanned || 0,
-      numberOfDomainNamesScanned: latestRating.numberOfDomainNamesScanned || 0,
+      numberOfIpAddressesScanned: latestRating.numberOfIpAddressesScanned ?? 0,
+      numberOfDomainNamesScanned: latestRating.numberOfDomainNamesScanned ?? 0,
       selectedDate: latestRating.reportDate,
       availableDates: availableDates.map(d => d.reportDate),
       hasPreviousData: !!previousRating
@@ -260,7 +262,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !['ADMIN', 'ANALYST'].includes(session.user.role)) {
+    if (!session || !['ADMIN', 'ANALYST'].includes((session.user as any).role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
