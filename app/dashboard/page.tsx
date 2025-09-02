@@ -6,6 +6,7 @@ import AuthGuard from '@/lib/auth-guard';
 import NavBar from '@/components/nav-bar';
 import ScorecardBadge from '@/components/scorecard-badge';
 import RadarChart from '@/components/radar-chart';
+import { MultiSelectFilter } from '@/components/multi-select-filter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,9 @@ import {
   Shield, 
   Eye, 
   FileText,
-  RefreshCw
+  RefreshCw,
+  Rss,
+  ExternalLink
 } from 'lucide-react';
 
 interface ScorecardData {
@@ -37,11 +40,28 @@ interface ScorecardData {
   }>;
 }
 
+interface RssItem {
+  id: string;
+  title: string;
+  description?: string;
+  link: string;
+  pubDate?: string;
+  severity: string;
+  read: boolean;
+  rssFeed: {
+    name: string;
+    category: string;
+  };
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [scorecard, setScorecard] = useState<ScorecardData | null>(null);
+  const [rssItems, setRssItems] = useState<RssItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedSeverities, setSelectedSeverities] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const fetchScorecard = async () => {
     try {
@@ -55,6 +75,18 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const fetchRssItems = async () => {
+    try {
+      const response = await fetch('/api/rss-items?limit=5');
+      if (response.ok) {
+        const data = await response.json();
+        setRssItems(data.items || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch RSS items:', error);
     }
   };
 
@@ -73,6 +105,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchScorecard();
+    fetchRssItems();
   }, []);
 
   const getSeverityColor = (severity: string) => {
@@ -84,6 +117,17 @@ export default function DashboardPage() {
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  // Get unique values for filters
+  const availableSeverities = [...new Set(rssItems.map(item => item.severity))];
+  const availableCategories = [...new Set(rssItems.map(item => item.rssFeed.category))];
+
+  // Filter RSS items based on selected filters
+  const filteredRssItems = rssItems.filter(item => {
+    const severityMatch = selectedSeverities.length === 0 || selectedSeverities.includes(item.severity);
+    const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(item.rssFeed.category);
+    return severityMatch && categoryMatch;
+  });
 
   if (loading) {
     return (
@@ -302,6 +346,118 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* RSS Feed Widget */}
+              <Card className="mt-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Rss className="h-5 w-5 mr-2 text-orange-500" />
+                      Latest Security News
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.open('/rss-feeds', '_blank')}
+                    >
+                      View All
+                    </Button>
+                  </CardTitle>
+                  <CardDescription>
+                    Recent updates from your RSS security feeds
+                  </CardDescription>
+                  {rssItems.length > 0 && (
+                    <div className="flex gap-4 mt-4">
+                      <div className="flex-1">
+                        <MultiSelectFilter
+                          label="Severity"
+                          options={availableSeverities}
+                          selectedValues={selectedSeverities}
+                          onSelectionChange={setSelectedSeverities}
+                          isDark={false}
+                          placeholder="All severities"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <MultiSelectFilter
+                          label="Category"
+                          options={availableCategories}
+                          selectedValues={selectedCategories}
+                          onSelectionChange={setSelectedCategories}
+                          isDark={false}
+                          placeholder="All categories"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {rssItems.length > 0 ? (
+                    filteredRssItems.length > 0 ? (
+                      <div className="space-y-4">
+                        {filteredRssItems.slice(0, 5).map((item) => (
+                        <div key={item.id} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Badge className={getSeverityColor(item.severity)}>
+                                {item.severity}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {item.rssFeed.category}
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {item.rssFeed.name}
+                              </span>
+                              {!item.read && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              )}
+                            </div>
+                            <h4 className="font-medium text-gray-900 mb-1 line-clamp-2">
+                              {item.title}
+                            </h4>
+                            {item.description && (
+                              <p className="text-sm text-gray-600 line-clamp-2">
+                                {item.description}
+                              </p>
+                            )}
+                            <div className="mt-2 text-xs text-gray-500">
+                              {item.pubDate ? new Date(item.pubDate).toLocaleDateString() : 'No date'}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(item.link, '_blank')}
+                            className="ml-4 flex-shrink-0"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    ) : (
+                      <div className="text-center text-gray-500 py-8">
+                        <Rss className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p>No RSS items match the selected filters.</p>
+                        <p className="text-sm mt-2">Try adjusting your severity or category filters.</p>
+                      </div>
+                    )
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      <Rss className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>No RSS feeds configured yet.</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => window.open('/rss-feeds', '_blank')}
+                      >
+                        Configure RSS Feeds
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
