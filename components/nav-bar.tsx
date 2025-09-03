@@ -21,7 +21,8 @@ import {
   ChevronDown,
   UserCircle,
   UserCog,
-  Database
+  Database,
+  Rss
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -44,6 +45,7 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: `Open Items (${new Date().toISOString().slice(0, 10)})`, href: '/open-items', icon: CheckSquare, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+  { name: 'RSS Feeds', href: '/rss-feeds', icon: Rss, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
   { name: 'Threat Advisories', href: '/issues', icon: AlertTriangle, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
   { name: 'Security Scorecard', href: '/scorecard', icon: Shield, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
   { name: 'Detections — Falcon', href: '/detections/falcon', icon: Eye, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },

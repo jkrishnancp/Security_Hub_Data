@@ -494,3 +494,51 @@ model SecureworksAlert {
 
   @@map("secureworks_alerts")
 }
+
+model RssFeed {
+  id          String   @id @default(cuid())
+  name        String   // Display name for the RSS feed
+  url         String   @unique // RSS feed URL
+  category    String   // Category like "Dev Blogs", "Security News", etc.
+  active      Boolean  @default(true) // Whether feed is active for fetching
+  lastFetched DateTime? // Last successful fetch timestamp
+  fetchError  String?  // Last error message if any
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // RSS items from this feed
+  rssItems RssItem[]
+
+  @@map("rss_feeds")
+}
+
+model RssItem {
+  id          String        @id @default(cuid())
+  feedId      String        // Foreign key to RSS feed
+  title       String        // Article title
+  description String?       // Article description/content
+  link        String        @unique // Article URL
+  pubDate     DateTime?     // Published date from RSS
+  author      String?       // Article author
+  category    String?       // Article category
+  severity    SeverityLevel @default(INFO) // Classified severity level
+  tags        String?       // JSON array of tags
+  content     String?       // Full content if available
+  read        Boolean       @default(false) // Read status
+  bookmarked  Boolean       @default(false) // Bookmarked status
+  
+  // Vulnerability data
+  cves            String?   // JSON array of CVE IDs
+  cvssScore       Float?    // CVSS score if available
+  affectedProducts String? // JSON array of affected products
+  
+  // System tracking
+  fetchedAt   DateTime      @default(now()) // When item was fetched
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relation to RSS feed
+  rssFeed RssFeed @relation(fields: [feedId], references: [id], onDelete: Cascade)
+
+  @@map("rss_items")
+}

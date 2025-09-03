@@ -12,8 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
-  Download, 
+  Upload,
   Filter, 
   TrendingUp, 
   TrendingDown, 
@@ -28,7 +29,12 @@ import {
   Globe,
   Server,
   Shield,
-  Bug
+  Bug,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  CheckCircle,
+  Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { METALLIC_COLORS } from '@/lib/theme-config';
@@ -55,7 +61,17 @@ interface ScorecardData {
     businessUnit: string;
     openedDate: string;
     impactScore: number;
+    asset: string;
+    count: number;
+    groupedIssues?: Array<{
+      id: string;
+      description: string;
+      severity: string;
+      impactScore: number;
+      openedDate: string;
+    }>;
   }>;
+  totalIssueCount: number;
   numberOfIpAddressesScanned?: number;
   numberOfDomainNamesScanned?: number;
   selectedDate?: Date;
@@ -75,6 +91,10 @@ export default function ScorecardPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{success: boolean, message: string, type?: string, rowsProcessed?: number} | null>(null);
 
   const fetchScorecard = async (date?: string) => {
     try {
@@ -163,9 +183,62 @@ export default function ScorecardPage() {
   };
 
 
-  const exportScorecard = async () => {
-    // This would implement PDF/CSV export functionality
-    console.log('Exporting scorecard...');
+  const toggleGroupExpansion = (groupId: string) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupId)) {
+        newSet.delete(groupId);
+      } else {
+        newSet.add(groupId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!session?.user || (session.user as any).role !== 'ADMIN') {
+      setUploadResult({ success: false, message: 'Admin access required for importing scorecard data.' });
+      return;
+    }
+
+    setUploading(true);
+    setUploadResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        setUploadResult({
+          success: true,
+          message: 'File uploaded successfully!',
+          type: result.type,
+          rowsProcessed: result.rowsProcessed
+        });
+        
+        // Refresh scorecard data
+        await fetchScorecard();
+      } else {
+        setUploadResult({
+          success: false,
+          message: result.error || 'Upload failed'
+        });
+      }
+    } catch (error) {
+      setUploadResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Upload failed'
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) {
@@ -245,10 +318,126 @@ export default function ScorecardPage() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              <Button onClick={exportScorecard}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
+              {session?.user && (session.user as any).role === 'ADMIN' && (
+                <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import Data
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Import Scorecard Data</DialogTitle>
+                      <DialogDescription>
+                        Import NETGEAR Security Scorecard files to update ratings and issues data
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6">
+                      {/* File Requirements */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                          <Info className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h4 className="text-sm font-medium text-blue-800 mb-2">Required Files</h4>
+                            <p className="text-sm text-blue-700 mb-3">
+                              Import requires TWO separate CSV files for complete scorecard functionality:
+                            </p>
+                            
+                            <div className="space-y-4">
+                              {/* Scorecard Report File */}
+                              <div className="bg-white rounded p-3 border border-blue-100">
+                                <div className="flex items-center mb-2">
+                                  <FileText className="h-4 w-4 text-blue-600 mr-2" />
+                                  <span className="font-medium text-blue-800">1. Scorecard Summary Report</span>
+                                </div>
+                                <p className="text-sm text-blue-700 mb-2">
+                                  <strong>Filename:</strong> <code className="bg-blue-100 px-1 rounded">NETGEAR_Scorecard_Report_YYYYMMDD.csv</code>
+                                </p>
+                                <p className="text-sm text-blue-600">Contains overall scores, letter grades, and category breakdowns for spider charts</p>
+                                <div className="mt-2 text-xs text-blue-600">
+                                  <strong>Expected fields:</strong> Company, Generated Date, Threat Indicators Score, Network Security Score, DNS Health Score, Patching Cadence Score, Application Security Score, etc.
+                                </div>
+                              </div>
+
+                              {/* Full Issues Report File */}
+                              <div className="bg-white rounded p-3 border border-blue-100">
+                                <div className="flex items-center mb-2">
+                                  <FileText className="h-4 w-4 text-blue-600 mr-2" />
+                                  <span className="font-medium text-blue-800">2. Full Issues Report</span>
+                                </div>
+                                <p className="text-sm text-blue-700 mb-2">
+                                  <strong>Filename:</strong> <code className="bg-blue-100 px-1 rounded">NETGEAR_FullIssues_Report_YYYYMMDD.csv</code>
+                                </p>
+                                <p className="text-sm text-blue-600">Contains detailed security issues with asset information for grouping</p>
+                                <div className="mt-2 text-xs text-blue-600">
+                                  <strong>Expected fields:</strong> Issue ID, Factor Name, Issue Type Title, Issue Type Severity, IP Addresses, Hostname, Subdomain, Final URL, etc.
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* File Upload Section */}
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Upload Files</h4>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                          <Upload className="h-8 w-8 mx-auto mb-4 text-gray-400" />
+                          <p className="text-sm text-gray-600 mb-2">
+                            {uploading ? 'Processing file...' : 'Drop files here or click to browse'}
+                          </p>
+                          <input
+                            type="file"
+                            accept=".csv"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleFileUpload(file);
+                            }}
+                            disabled={uploading}
+                            className="hidden"
+                            id="scorecard-file-input"
+                          />
+                          <label
+                            htmlFor="scorecard-file-input"
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            Select CSV File
+                          </label>
+                        </div>
+
+                        {/* Upload Result */}
+                        {uploadResult && (
+                          <div className={`p-3 rounded-lg border ${
+                            uploadResult.success 
+                              ? 'bg-green-50 border-green-200' 
+                              : 'bg-red-50 border-red-200'
+                          }`}>
+                            <div className="flex items-center">
+                              {uploadResult.success ? (
+                                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                              ) : (
+                                <X className="h-4 w-4 mr-2 text-red-600" />
+                              )}
+                              <span className={`text-sm ${
+                                uploadResult.success ? 'text-green-700' : 'text-red-700'
+                              }`}>
+                                {uploadResult.message}
+                              </span>
+                            </div>
+                            {uploadResult.success && uploadResult.type && uploadResult.rowsProcessed && (
+                              <div className="mt-2 text-xs text-green-600">
+                                Type: {uploadResult.type} | Rows: {uploadResult.rowsProcessed}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
                 </div>
               </div>
 
@@ -431,10 +620,18 @@ export default function ScorecardPage() {
                       "h-5 w-5 mr-2",
                       isDark ? "text-orange-400" : "text-orange-500"
                     )} />
-                    Open Issues ({filteredIssues.length})
+                    Open Issues ({scorecard.totalIssueCount})
                   </CardTitle>
                   <CardDescription>
                     Security issues currently impacting your scorecard rating
+                    {filteredIssues.length !== scorecard.totalIssueCount && (
+                      <span className={cn(
+                        "ml-2 text-sm",
+                        isDark ? "text-blue-400" : "text-blue-600"
+                      )}>
+                        (Showing {filteredIssues.length} of {scorecard.totalIssueCount} total issues)
+                      </span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -487,61 +684,160 @@ export default function ScorecardPage() {
                   <div className="space-y-4">
                     {filteredIssues.length > 0 ? (
                       filteredIssues.map((issue) => (
-                        <div 
-                          key={issue.id} 
-                          className={cn(
-                            "p-4 rounded-lg border cursor-pointer transition-colors",
-                            isDark 
-                              ? "bg-gray-800 border-gray-700 hover:bg-gray-700" 
-                              : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                          )}
-                          onClick={() => {
-                            setSelectedIssue(issue);
-                            setDetailPanelOpen(true);
-                          }}
-                          data-issue-card
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3 mb-2">
-                                <Badge className={getSeverityColor(issue.severity)}>
-                                  {issue.severity}
-                                </Badge>
-                                <Badge variant="outline">
-                                  {issue.category}
-                                </Badge>
-                                <Badge variant="secondary" className="text-xs">
-                                  {issue.businessUnit}
-                                </Badge>
+                        <div key={issue.id} className="space-y-2">
+                          <div 
+                            className={cn(
+                              "p-4 rounded-lg border transition-colors",
+                              isDark 
+                                ? "bg-gray-800 border-gray-700 hover:bg-gray-700" 
+                                : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                            )}
+                            data-issue-card
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3 mb-2">
+                                  <Badge className={getSeverityColor(issue.severity)}>
+                                    {issue.severity}
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    {issue.category}
+                                  </Badge>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {issue.businessUnit}
+                                  </Badge>
+                                  {issue.count > 1 && (
+                                    <Badge variant="outline" className={cn(
+                                      "text-xs",
+                                      isDark ? "bg-blue-900 text-blue-300 border-blue-700" : "bg-blue-100 text-blue-800 border-blue-200"
+                                    )}>
+                                      {issue.count} issues
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-start space-x-2">
+                                  {issue.count > 1 && issue.groupedIssues && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleGroupExpansion(issue.id);
+                                      }}
+                                      className={cn(
+                                        "mt-0.5 p-0.5 rounded hover:bg-gray-200",
+                                        isDark ? "hover:bg-gray-600" : "hover:bg-gray-200"
+                                      )}
+                                    >
+                                      {expandedGroups.has(issue.id) ? (
+                                        <ChevronDown className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronRight className="h-4 w-4" />
+                                      )}
+                                    </button>
+                                  )}
+                                  <div className="flex-1">
+                                    <p 
+                                      className={cn(
+                                        "text-sm mb-2 cursor-pointer",
+                                        isDark ? "text-white" : "text-gray-900"
+                                      )}
+                                      onClick={() => {
+                                        setSelectedIssue(issue);
+                                        setDetailPanelOpen(true);
+                                      }}
+                                    >{issue.description}</p>
+                                  </div>
+                                </div>
+                                <div className={cn(
+                                  "mb-2 text-xs",
+                                  isDark ? "text-gray-400" : "text-gray-600"
+                                )}>
+                                  <span className="font-medium">Asset: </span>
+                                  <span className={cn(
+                                    "font-mono px-1.5 py-0.5 rounded text-xs",
+                                    isDark ? "bg-gray-700 text-gray-300" : "bg-gray-200 text-gray-800"
+                                  )}>
+                                    {issue.asset}
+                                  </span>
+                                </div>
+                                <div className={cn(
+                                  "flex items-center space-x-4 text-xs",
+                                  isDark ? "text-gray-400" : "text-gray-500"
+                                )}>
+                                  <span>
+                                    Opened: {new Date(issue.openedDate).toLocaleDateString()}
+                                  </span>
+                                </div>
                               </div>
-                              <p className={cn(
-                                "text-sm mb-2",
-                                isDark ? "text-white" : "text-gray-900"
-                              )}>{issue.description}</p>
-                              <div className={cn(
-                                "flex items-center space-x-4 text-xs",
-                                isDark ? "text-gray-400" : "text-gray-500"
-                              )}>
-                                <span>
-                                  Opened: {new Date(issue.openedDate).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-right ml-4">
-                              <div className={cn(
-                                "text-sm font-medium",
-                                isDark ? "text-white" : "text-gray-900"
-                              )}>
-                                Impact: {Math.round(issue.impactScore * 10) / 10}
-                              </div>
-                              <div className={cn(
-                                "text-xs mt-1",
-                                isDark ? "text-gray-400" : "text-gray-500"
-                              )}>
-                                Score Impact
+                              <div className="text-right ml-4">
+                                <div className={cn(
+                                  "text-sm font-medium",
+                                  isDark ? "text-white" : "text-gray-900"
+                                )}>
+                                  Impact: {Math.round(issue.impactScore * 10) / 10}
+                                </div>
+                                <div className={cn(
+                                  "text-xs mt-1",
+                                  isDark ? "text-gray-400" : "text-gray-500"
+                                )}>
+                                  {issue.count > 1 ? 'Total Impact' : 'Score Impact'}
+                                </div>
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Expanded grouped issues */}
+                          {issue.count > 1 && issue.groupedIssues && expandedGroups.has(issue.id) && (
+                            <div className={cn(
+                              "ml-8 space-y-2 border-l-2 pl-4",
+                              isDark ? "border-gray-700" : "border-gray-200"
+                            )}>
+                              {issue.groupedIssues.map((subIssue, index) => (
+                                <div 
+                                  key={subIssue.id}
+                                  className={cn(
+                                    "p-3 rounded border text-sm cursor-pointer transition-colors",
+                                    isDark 
+                                      ? "bg-gray-800 border-gray-700 hover:bg-gray-700" 
+                                      : "bg-white border-gray-200 hover:bg-gray-50"
+                                  )}
+                                  onClick={() => {
+                                    setSelectedIssue(subIssue);
+                                    setDetailPanelOpen(true);
+                                  }}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center space-x-2 mb-1">
+                                        <Badge className={getSeverityColor(subIssue.severity)}>
+                                          {subIssue.severity}
+                                        </Badge>
+                                      </div>
+                                      <p className={cn(
+                                        "mb-1",
+                                        isDark ? "text-gray-200" : "text-gray-800"
+                                      )}>
+                                        {subIssue.description}
+                                      </p>
+                                      <div className={cn(
+                                        "text-xs",
+                                        isDark ? "text-gray-400" : "text-gray-500"
+                                      )}>
+                                        Opened: {new Date(subIssue.openedDate).toLocaleDateString()}
+                                      </div>
+                                    </div>
+                                    <div className="text-right ml-4">
+                                      <div className={cn(
+                                        "text-xs font-medium",
+                                        isDark ? "text-gray-200" : "text-gray-700"
+                                      )}>
+                                        {Math.round(subIssue.impactScore * 10) / 10}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))
                     ) : (

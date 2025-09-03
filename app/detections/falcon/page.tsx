@@ -98,15 +98,15 @@ const severityColors = {
 };
 
 const tacticColors = [
-  METALLIC_COLORS.primary,
-  METALLIC_COLORS.secondary,
-  METALLIC_COLORS.tertiary,
-  METALLIC_COLORS.user1,
-  METALLIC_COLORS.user2,
-  METALLIC_COLORS.user3,
-  METALLIC_COLORS.user4,
-  METALLIC_COLORS.user5,
-  METALLIC_COLORS.user6,
+  METALLIC_COLORS.high,        // Orange-red
+  METALLIC_COLORS.medium,      // Peach/orange  
+  METALLIC_COLORS.low,         // Emerald green
+  METALLIC_COLORS.info,        // Steel blue
+  METALLIC_COLORS.open,        // Crimson
+  METALLIC_COLORS.closed,      // Forest green
+  METALLIC_COLORS.inProgress,  // Dark orange
+  METALLIC_COLORS.pending,     // Dark orchid
+  METALLIC_COLORS.resolved,    // Lime green
 ];
 
 function colorFor(name: string, i: number) {
@@ -500,21 +500,34 @@ export default function FalconDetections() {
                       data={severityCounts} 
                       dataKey="value" 
                       nameKey="name" 
-                      outerRadius={85} 
-                      label={({name, value}) => `${name}: ${value}`}
+                      outerRadius={85}
+                      innerRadius={35}
+                      paddingAngle={2}
+                      label={({name, value, percent}) => 
+                        value > 0 ? `${name}: ${value} (${(percent * 100).toFixed(1)}%)` : ''
+                      }
                       labelLine={false}
                     >
                       {severityCounts.map((d, i) => (
-                        <Cell key={i} fill={d.fill} />
+                        <Cell 
+                          key={i} 
+                          fill={d.fill} 
+                          stroke={isDark ? '#374151' : '#e5e7eb'}
+                          strokeWidth={2}
+                        />
                       ))}
                     </Pie>
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: isDark ? '#374151' : '#ffffff',
-                        border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+                        backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                         borderRadius: '8px',
-                        color: isDark ? '#f3f4f6' : '#111827'
+                        color: isDark ? '#f9fafb' : '#111827'
                       }}
+                      formatter={(value: number, name: string) => [
+                        `${value} detections`,
+                        name
+                      ]}
                     />
                     <Legend />
                   </PieChart>
@@ -538,7 +551,11 @@ export default function FalconDetections() {
               <CardContent className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={tacticCounts} margin={{ top: 8, right: 16, left: 0, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={isDark ? '#374151' : '#e5e7eb'} 
+                      opacity={0.5}
+                    />
                     <XAxis 
                       dataKey="name" 
                       tick={{ fontSize: 11, fill: isDark ? '#9ca3af' : '#6b7280' }} 
@@ -546,22 +563,36 @@ export default function FalconDetections() {
                       height={60} 
                       interval={0} 
                       textAnchor="end"
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <YAxis 
                       allowDecimals={false} 
                       tick={{ fontSize: 11, fill: isDark ? '#9ca3af' : '#6b7280' }}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: isDark ? '#374151' : '#ffffff',
-                        border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+                        backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                         borderRadius: '8px',
-                        color: isDark ? '#f3f4f6' : '#111827'
+                        color: isDark ? '#f9fafb' : '#111827'
                       }}
+                      formatter={(value: number, name: string) => [
+                        `${value} detections`,
+                        name
+                      ]}
+                      cursor={{ fill: isDark ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.3)' }}
                     />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
                       {tacticCounts.map((d, i) => (
-                        <Cell key={i} fill={d.fill} />
+                        <Cell 
+                          key={i} 
+                          fill={d.fill}
+                          stroke={isDark ? '#374151' : '#e5e7eb'}
+                          strokeWidth={1}
+                        />
                       ))}
                     </Bar>
                   </BarChart>
@@ -585,7 +616,11 @@ export default function FalconDetections() {
               <CardContent className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={productCounts} margin={{ top: 8, right: 16, left: 0, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={isDark ? '#374151' : '#e5e7eb'} 
+                      opacity={0.5}
+                    />
                     <XAxis 
                       dataKey="name" 
                       tick={{ fontSize: 11, fill: isDark ? '#9ca3af' : '#6b7280' }} 
@@ -593,22 +628,36 @@ export default function FalconDetections() {
                       height={60}
                       interval={0}
                       textAnchor="end"
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <YAxis 
                       allowDecimals={false}
                       tick={{ fontSize: 11, fill: isDark ? '#9ca3af' : '#6b7280' }}
+                      axisLine={false}
+                      tickLine={false}
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: isDark ? '#374151' : '#ffffff',
-                        border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+                        backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                        border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                         borderRadius: '8px',
-                        color: isDark ? '#f3f4f6' : '#111827'
+                        color: isDark ? '#f9fafb' : '#111827'
                       }}
+                      formatter={(value: number, name: string) => [
+                        `${value} detections`,
+                        name
+                      ]}
+                      cursor={{ fill: isDark ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.3)' }}
                     />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
                       {productCounts.map((d, i) => (
-                        <Cell key={i} fill={d.fill} />
+                        <Cell 
+                          key={i} 
+                          fill={d.fill}
+                          stroke={isDark ? '#374151' : '#e5e7eb'}
+                          strokeWidth={1}
+                        />
                       ))}
                     </Bar>
                   </BarChart>
@@ -639,32 +688,40 @@ export default function FalconDetections() {
             <CardContent className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendingByDay} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#374151' : '#e5e7eb'} />
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke={isDark ? '#374151' : '#e5e7eb'} 
+                    opacity={0.5}
+                  />
                   <XAxis 
                     dataKey="day" 
                     tick={{ fontSize: 11, fill: isDark ? '#9ca3af' : '#6b7280' }}
+                    axisLine={false}
+                    tickLine={false}
                   />
                   <YAxis 
                     allowDecimals={false}
                     tick={{ fontSize: 11, fill: isDark ? '#9ca3af' : '#6b7280' }}
+                    axisLine={false}
+                    tickLine={false}
                   />
                   <Tooltip 
                     contentStyle={{
-                      backgroundColor: isDark ? '#374151' : '#ffffff',
-                      border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+                      backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                      border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                       borderRadius: '8px',
-                      color: isDark ? '#f3f4f6' : '#111827'
+                      color: isDark ? '#f9fafb' : '#111827'
                     }}
                     labelFormatter={(label) => `Date: ${label}`}
-                    formatter={(value, name) => [value, 'Detections']}
+                    formatter={(value: number) => [`${value} detections`, 'Count']}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="count" 
-                    stroke={METALLIC_COLORS.primary}
+                    stroke={METALLIC_COLORS.high}
                     strokeWidth={3} 
-                    dot={{ fill: METALLIC_COLORS.primary, strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, fill: METALLIC_COLORS.secondary }}
+                    dot={{ fill: METALLIC_COLORS.high, strokeWidth: 2, r: 4, stroke: '#ffffff' }}
+                    activeDot={{ r: 6, fill: METALLIC_COLORS.critical, stroke: '#ffffff', strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>

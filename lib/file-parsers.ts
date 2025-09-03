@@ -121,6 +121,10 @@ export class FileParser {
   private static detectDataType(fileName: string, firstRow: any): string {
     const name = fileName.toLowerCase();
     
+    // NETGEAR Scorecard files - be specific about these
+    if (name.includes('netgear') && name.includes('fullissues') && name.includes('report')) return 'scorecard_issues';
+    if (name.includes('netgear') && name.includes('scorecard') && name.includes('report') && !name.includes('fullissues')) return 'scorecard_report';
+    
     if (name.includes('vulnerabilit')) return 'vulnerabilities';
     if (name.includes('falcon')) return 'falcon_detections';
     if (name.includes('secureworks')) return 'secureworks_detections';
@@ -133,6 +137,16 @@ export class FileParser {
     // Try to detect by column headers
     if (firstRow) {
       const headers = Object.keys(firstRow).map(h => h.toLowerCase());
+      
+      // Check for NETGEAR scorecard issue headers
+      if (headers.includes('issue id') && headers.includes('factor name') && headers.includes('issue type title')) {
+        return 'scorecard_issues';
+      }
+      
+      // Check for NETGEAR scorecard rating headers  
+      if (headers.includes('overall score') || headers.includes('letter grade') || headers.includes('threat indicators')) {
+        return 'scorecard_report';
+      }
       
       if (headers.includes('cve') || headers.includes('vulnerability')) return 'vulnerabilities';
       if (headers.includes('detection') || headers.includes('falcon')) return 'falcon_detections';
@@ -156,6 +170,10 @@ export class FileParser {
         return data.map(row => this.normalizeAwsSecurityHub(row));
       case 'issue_reports':
         return data.map(row => this.normalizeIssueReport(row));
+      case 'scorecard_issues':
+        return data.map(row => this.normalizeScorecardIssue(row));
+      case 'scorecard_report':
+        return data.map(row => this.normalizeScorecardReport(row));
       default:
         return data;
     }
@@ -340,5 +358,103 @@ export class FileParser {
       data: advisories,
       errors: [],
     };
+  }
+
+  private static normalizeScorecardIssue(row: any): any {
+    return {
+      issueId: row['ISSUE ID'] || row['Issue ID'] || row['issue_id'] || `scorecard_${Date.now()}_${Math.random()}`,
+      factorName: row['FACTOR NAME'] || row['Factor Name'] || row['factor_name'] || 'Unknown',
+      issueTypeTitle: row['ISSUE TYPE TITLE'] || row['Issue Type Title'] || row['issue_type_title'] || 'No Title',
+      issueTypeCode: row['ISSUE TYPE CODE'] || row['Issue Type Code'] || row['issue_type_code'] || null,
+      issueTypeSeverity: this.normalizeSeverity(row['ISSUE TYPE SEVERITY'] || row['Issue Type Severity'] || row['issue_type_severity']),
+      issueRecommendation: row['ISSUE RECOMMENDATION'] || row['Issue Recommendation'] || row['issue_recommendation'] || null,
+      firstSeen: this.parseDate(row['FIRST SEEN'] || row['First Seen'] || row['first_seen']),
+      lastSeen: this.parseDate(row['LAST SEEN'] || row['Last Seen'] || row['last_seen']),
+      ipAddresses: row['IP ADDRESSES'] || row['IP Addresses'] || row['ip_addresses'] || null,
+      hostname: row['HOSTNAME'] || row['Hostname'] || row['hostname'] || null,
+      subdomain: row['SUBDOMAIN'] || row['Subdomain'] || row['subdomain'] || null,
+      target: row['TARGET'] || row['Target'] || row['target'] || null,
+      ports: row['PORTS'] || row['Ports'] || row['ports'] || null,
+      status: row['STATUS'] || row['Status'] || row['status'] || 'active',
+      cveId: row['CVE'] || row['cve'] || null,
+      description: row['DESCRIPTION'] || row['Description'] || row['description'] || null,
+      timeSincePublished: row['TIME SINCE PUBLISHED'] || row['Time Since Published'] || row['time_since_published'] || null,
+      timeOpenSincePublished: row['TIME OPEN SINCE PUBLISHED'] || row['Time Open Since Published'] || row['time_open_since_published'] || null,
+      cookieName: row['COOKIE NAME'] || row['Cookie Name'] || row['cookie_name'] || null,
+      data: row['DATA'] || row['Data'] || row['data'] || null,
+      commonName: row['COMMON NAME'] || row['Common Name'] || row['common_name'] || null,
+      keyLength: row['KEY LENGTH'] || row['Key Length'] || row['key_length'] || null,
+      usingRC4: this.parseBoolean(row['USING RC4?'] || row['Using RC4?'] || row['using_rc4']),
+      issuerOrganizationName: row['ISSUER ORGANIZATION NAME'] || row['Issuer Organization Name'] || row['issuer_organization_name'] || null,
+      provider: row['PROVIDER'] || row['Provider'] || row['provider'] || null,
+      detectedService: row['DETECTED SERVICE'] || row['Detected Service'] || row['detected_service'] || null,
+      product: row['PRODUCT'] || row['Product'] || row['product'] || null,
+      version: row['VERSION'] || row['Version'] || row['version'] || null,
+      platform: row['PLATFORM'] || row['Platform'] || row['platform'] || null,
+      browser: row['BROWSER'] || row['Browser'] || row['browser'] || null,
+      destinationIps: row['DESTINATION IPS'] || row['Destination IPs'] || row['destination_ips'] || null,
+      malwareFamily: row['MALWARE FAMILY'] || row['Malware Family'] || row['malware_family'] || null,
+      malwareType: row['MALWARE TYPE'] || row['Malware Type'] || row['malware_type'] || null,
+      detectionMethod: row['DETECTION METHOD'] || row['Detection Method'] || row['detection_method'] || null,
+      label: row['LABEL'] || row['Label'] || row['label'] || null,
+      initialUrl: row['INITIAL URL'] || row['Initial URL'] || row['initial_url'] || null,
+      finalUrl: row['FINAL URL'] || row['Final URL'] || row['final_url'] || null,
+      requestChain: row['REQUEST CHAIN'] || row['Request Chain'] || row['request_chain'] || null,
+      headers: row['HEADERS'] || row['Headers'] || row['headers'] || null,
+      analysis: row['ANALYSIS'] || row['Analysis'] || row['analysis'] || null,
+      percentSimilarCompanies: this.parseFloat(row['% OF SIMILAR COMPANIES WITH THE ISSUE'] || row['% of Similar Companies with the Issue'] || row['percent_similar_companies']),
+      averageFindings: this.parseFloat(row['AVERAGE FINDINGS (similar companies)'] || row['Average Findings (similar companies)'] || row['average_findings']),
+      issueTypeScoreImpact: this.parseFloat(row['ISSUE TYPE SCORE IMPACT'] || row['Issue Type Score Impact'] || row['issue_type_score_impact']) || 0.0,
+    };
+  }
+
+  private static normalizeScorecardReport(row: any): any {
+    return {
+      company: row['COMPANY'] || row['Company'] || row['company'] || 'NETGEAR',
+      generatedBy: row['GENERATED BY'] || row['Generated By'] || row['generated_by'] || 'SecurityScorecard',
+      overallScore: this.parseFloat(row['OVERALL SCORE'] || row['Overall Score'] || row['overall_score']) || 0,
+      letterGrade: row['LETTER GRADE'] || row['Letter Grade'] || row['letter_grade'] || 'F',
+      breakdown: row['BREAKDOWN'] || row['Breakdown'] || row['breakdown'] || null,
+      threatIndicatorsScore: this.parseFloat(row['THREAT INDICATORS'] || row['Threat Indicators'] || row['threat_indicators']),
+      networkSecurityScore: this.parseFloat(row['NETWORK SECURITY'] || row['Network Security'] || row['network_security']),
+      dnsHealthScore: this.parseFloat(row['DNS HEALTH'] || row['DNS Health'] || row['dns_health']),
+      patchingCadenceScore: this.parseFloat(row['PATCHING CADENCE'] || row['Patching Cadence'] || row['patching_cadence']),
+      endpointSecurityScore: this.parseFloat(row['ENDPOINT SECURITY'] || row['Endpoint Security'] || row['endpoint_security']),
+      ipReputationScore: this.parseFloat(row['IP REPUTATION'] || row['IP Reputation'] || row['ip_reputation']),
+      applicationSecurityScore: this.parseFloat(row['APPLICATION SECURITY'] || row['Application Security'] || row['application_security']),
+      cubitScore: this.parseFloat(row['CUBIT'] || row['Cubit'] || row['cubit']),
+      hackerChatterScore: this.parseFloat(row['HACKER CHATTER'] || row['Hacker Chatter'] || row['hacker_chatter']),
+      informationLeakScore: this.parseFloat(row['INFORMATION LEAK'] || row['Information Leak'] || row['information_leak']),
+      socialEngineeringScore: this.parseFloat(row['SOCIAL ENGINEERING'] || row['Social Engineering'] || row['social_engineering']),
+      industry: row['INDUSTRY'] || row['Industry'] || row['industry'] || null,
+      companyWebsite: row['COMPANY WEBSITE'] || row['Company Website'] || row['company_website'] || null,
+      findingsOnOpenPorts: this.parseFloat(row['FINDINGS ON OPEN PORTS'] || row['Findings on Open Ports'] || row['findings_on_open_ports']),
+      siteVulnerabilities: this.parseFloat(row['SITE VULNERABILITIES'] || row['Site Vulnerabilities'] || row['site_vulnerabilities']),
+      malwareDiscovered: this.parseFloat(row['MALWARE DISCOVERED'] || row['Malware Discovered'] || row['malware_discovered']),
+      leakedInformation: this.parseFloat(row['LEAKED INFORMATION'] || row['Leaked Information'] || row['leaked_information']),
+      numberOfIpAddressesScanned: this.parseInt(row['NUMBER OF IP ADDRESSES SCANNED'] || row['Number of IP Addresses Scanned'] || row['number_of_ip_addresses_scanned']),
+      numberOfDomainNamesScanned: this.parseInt(row['NUMBER OF DOMAIN NAMES SCANNED'] || row['Number of Domain Names Scanned'] || row['number_of_domain_names_scanned']),
+      businessUnit: row['BUSINESS UNIT'] || row['Business Unit'] || row['business_unit'] || 'NETGEAR',
+    };
+  }
+
+  private static parseFloat(value: any): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = parseFloat(value.toString());
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  private static parseInt(value: any): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = parseInt(value.toString());
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  private static parseBoolean(value: any): boolean | null {
+    if (value === null || value === undefined || value === '') return null;
+    const str = value.toString().toLowerCase();
+    if (str === 'true' || str === 'yes' || str === '1') return true;
+    if (str === 'false' || str === 'no' || str === '0') return false;
+    return null;
   }
 }

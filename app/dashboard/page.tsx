@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import AuthGuard from '@/lib/auth-guard';
 import NavBar from '@/components/nav-bar';
@@ -37,6 +37,7 @@ interface ScorecardData {
     severity: string;
     category: string;
     impactScore: number;
+    asset: string;
   }>;
 }
 
@@ -118,16 +119,26 @@ export default function DashboardPage() {
     }
   };
 
-  // Get unique values for filters
-  const availableSeverities = [...new Set(rssItems.map(item => item.severity))];
-  const availableCategories = [...new Set(rssItems.map(item => item.rssFeed.category))];
+  // Memoize expensive computations
+  const { availableSeverities, availableCategories, filteredRssItems } = useMemo(() => {
+    const severities = new Set<string>();
+    const categories = new Set<string>();
+    
+    const filtered = rssItems.filter(item => {
+      severities.add(item.severity);
+      categories.add(item.rssFeed.category);
+      
+      const severityMatch = selectedSeverities.length === 0 || selectedSeverities.includes(item.severity);
+      const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(item.rssFeed.category);
+      return severityMatch && categoryMatch;
+    });
 
-  // Filter RSS items based on selected filters
-  const filteredRssItems = rssItems.filter(item => {
-    const severityMatch = selectedSeverities.length === 0 || selectedSeverities.includes(item.severity);
-    const categoryMatch = selectedCategories.length === 0 || selectedCategories.includes(item.rssFeed.category);
-    return severityMatch && categoryMatch;
-  });
+    return {
+      availableSeverities: Array.from(severities),
+      availableCategories: Array.from(categories),
+      filteredRssItems: filtered
+    };
+  }, [rssItems, selectedSeverities, selectedCategories]);
 
   if (loading) {
     return (
@@ -211,12 +222,12 @@ export default function DashboardPage() {
               </div>
 
               {/* Category Breakdown */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
                 {scorecard.categories.map((category) => (
-                  <Card key={category.name}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg flex items-center justify-between">
-                        {category.name}
+                  <Card key={category.name} className="relative">
+                    <CardHeader className="pb-2 px-4 pt-4">
+                      <CardTitle className="text-sm flex items-center justify-between">
+                        <span className="truncate pr-2">{category.name}</span>
                         <ScorecardBadge 
                           score={category.score} 
                           letterGrade={category.score >= 90 ? 'A' : category.score >= 80 ? 'B' : category.score >= 70 ? 'C' : category.score >= 60 ? 'D' : 'F'} 
@@ -224,20 +235,20 @@ export default function DashboardPage() {
                         />
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-gray-500">Score</span>
-                        <span className="font-medium">{Math.round(category.score)}%</span>
+                    <CardContent className="px-4 pb-4 pt-1 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">Current Score</span>
+                        <span className="font-semibold text-lg">{Math.round(category.score)}</span>
                       </div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-gray-500">Open Issues</span>
-                        <Badge variant={category.issues > 0 ? 'destructive' : 'secondary'}>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500">Open Issues</span>
+                        <Badge variant={category.issues > 0 ? 'destructive' : 'secondary'} className="text-xs px-2 py-0">
                           {category.issues}
                         </Badge>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-500">Weight</span>
-                        <span className="text-sm font-medium">{category.weight}x</span>
+                        <span className="text-xs text-gray-500">Weight</span>
+                        <span className="text-xs font-medium">{category.weight}x</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -259,9 +270,9 @@ export default function DashboardPage() {
                   {scorecard.topIssues.length > 0 ? (
                     <div className="space-y-4">
                       {scorecard.topIssues.slice(0, 5).map((issue) => (
-                        <div key={issue.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div key={issue.id} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
                           <div className="flex-1">
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-3 mb-2">
                               <Badge className={getSeverityColor(issue.severity)}>
                                 {issue.severity}
                               </Badge>
@@ -269,9 +280,15 @@ export default function DashboardPage() {
                                 {issue.category}
                               </Badge>
                             </div>
-                            <p className="mt-2 text-sm text-gray-900">{issue.description}</p>
+                            <p className="mb-2 text-sm text-gray-900">{issue.description}</p>
+                            <div className="text-xs text-gray-600">
+                              <span className="font-medium">Asset: </span>
+                              <span className="font-mono bg-gray-200 px-1 py-0.5 rounded text-xs">
+                                {issue.asset}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right ml-4">
                             <div className="text-sm font-medium text-gray-900">
                               Impact: {Math.round(issue.impactScore * 10) / 10}
                             </div>

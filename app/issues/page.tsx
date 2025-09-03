@@ -34,12 +34,22 @@ const CHART_COLORS = {
   Critical: METALLIC_COLORS.critical,
   High: METALLIC_COLORS.high,
   Medium: METALLIC_COLORS.medium,
-  Low: METALLIC_COLORS.low
+  Low: METALLIC_COLORS.low,
+  // Add more colorful fallback colors for any other severities
+  Informational: METALLIC_COLORS.info,
+  Info: METALLIC_COLORS.info,
+  Unknown: METALLIC_COLORS.pending,  // Use purple instead of gray
+  undefined: METALLIC_COLORS.inProgress  // Fallback for undefined values
 };
 
 const NETGEAR_COLORS = {
   High: METALLIC_COLORS.high,
-  Low: METALLIC_COLORS.low
+  Low: METALLIC_COLORS.low,
+  Medium: METALLIC_COLORS.medium,
+  Critical: METALLIC_COLORS.critical,
+  // Add more colorful fallback colors for any other netgear severities
+  Unknown: METALLIC_COLORS.info,  // Use blue instead of gray
+  undefined: METALLIC_COLORS.resolved  // Fallback for undefined values
 };
 
 interface ThreatAdvisory {
@@ -234,7 +244,9 @@ export default function ThreatAdvisoriesPage() {
     return Object.entries(filteredStats.bySeverity).map(([severity, count]) => ({
       name: severity,
       value: count,
-      fill: CHART_COLORS[severity as keyof typeof CHART_COLORS] || '#6b7280'
+      fill: CHART_COLORS[severity as keyof typeof CHART_COLORS] || CHART_COLORS.Unknown,
+      stroke: isDark ? '#374151' : '#e5e7eb',
+      strokeWidth: 2
     }));
   };
 
@@ -243,7 +255,9 @@ export default function ThreatAdvisoriesPage() {
     return Object.entries(filteredStats.byNetgearSeverity).map(([severity, count]) => ({
       name: `Netgear ${severity}`,
       value: count,
-      fill: NETGEAR_COLORS[severity as keyof typeof NETGEAR_COLORS] || '#6b7280'
+      fill: NETGEAR_COLORS[severity as keyof typeof NETGEAR_COLORS] || NETGEAR_COLORS.Unknown,
+      stroke: isDark ? '#374151' : '#e5e7eb',
+      strokeWidth: 2
     }));
   };
 
@@ -252,8 +266,20 @@ export default function ThreatAdvisoriesPage() {
     const impactedCount = filteredStats.impactedCount;
     const notImpactedCount = filteredStats.total - impactedCount;
     return [
-      { name: 'Impacted', value: impactedCount, fill: METALLIC_COLORS.open },
-      { name: 'Not Impacted', value: notImpactedCount, fill: METALLIC_COLORS.closed }
+      { 
+        name: 'Impacted', 
+        value: impactedCount, 
+        fill: METALLIC_COLORS.open,
+        stroke: isDark ? '#374151' : '#e5e7eb',
+        strokeWidth: 2
+      },
+      { 
+        name: 'Not Impacted', 
+        value: notImpactedCount, 
+        fill: METALLIC_COLORS.closed,
+        stroke: isDark ? '#374151' : '#e5e7eb',
+        strokeWidth: 2
+      }
     ];
   };
 
@@ -547,13 +573,34 @@ export default function ThreatAdvisoriesPage() {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        label={({ name, value }) => `${name}: ${value}`}
+                        innerRadius={30}
+                        paddingAngle={2}
+                        label={({ name, value, percent }) => 
+                          value > 0 ? `${name}: ${value} (${(percent * 100).toFixed(1)}%)` : ''
+                        }
+                        labelLine={false}
                       >
                         {getSeverityChartData().map((entry, index) => (
-                          <Cell key={`severity-${index}`} fill={entry.fill} />
+                          <Cell 
+                            key={`severity-${index}`} 
+                            fill={entry.fill}
+                            stroke={entry.stroke}
+                            strokeWidth={entry.strokeWidth}
+                          />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                          border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                          borderRadius: '8px',
+                          color: isDark ? '#f9fafb' : '#111827'
+                        }}
+                        formatter={(value: number, name: string) => [
+                          `${value} advisories`,
+                          name
+                        ]}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -568,14 +615,53 @@ export default function ThreatAdvisoriesPage() {
               <CardContent>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={getNetgearSeverityChartData()}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    <BarChart 
+                      data={getNetgearSeverityChartData()}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke={isDark ? '#374151' : '#e5e7eb'}
+                        opacity={0.5}
+                      />
+                      <XAxis 
+                        dataKey="name"
+                        stroke={isDark ? '#9ca3af' : '#6b7280'}
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis 
+                        stroke={isDark ? '#9ca3af' : '#6b7280'}
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                          border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                          borderRadius: '8px',
+                          color: isDark ? '#f9fafb' : '#111827'
+                        }}
+                        formatter={(value: number, name: string) => [
+                          `${value} advisories`,
+                          name.replace('Netgear ', '')
+                        ]}
+                        cursor={{ fill: isDark ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.3)' }}
+                      />
+                      <Bar 
+                        dataKey="value" 
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={80}
+                      >
                         {getNetgearSeverityChartData().map((entry, index) => (
-                          <Cell key={`netgear-${index}`} fill={entry.fill} />
+                          <Cell 
+                            key={`netgear-${index}`} 
+                            fill={entry.fill}
+                            stroke={entry.stroke}
+                            strokeWidth={entry.strokeWidth}
+                          />
                         ))}
                       </Bar>
                     </BarChart>
@@ -600,15 +686,34 @@ export default function ThreatAdvisoriesPage() {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
+                        innerRadius={30}
+                        paddingAngle={2}
                         label={({ name, value, percent }) => 
-                          `${name}: ${value} (${(percent * 100).toFixed(1)}%)`
+                          value > 0 ? `${name}: ${value} (${(percent * 100).toFixed(1)}%)` : ''
                         }
+                        labelLine={false}
                       >
                         {getImpactChartData().map((entry, index) => (
-                          <Cell key={`impact-${index}`} fill={entry.fill} />
+                          <Cell 
+                            key={`impact-${index}`} 
+                            fill={entry.fill}
+                            stroke={entry.stroke}
+                            strokeWidth={entry.strokeWidth}
+                          />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                          border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+                          borderRadius: '8px',
+                          color: isDark ? '#f9fafb' : '#111827'
+                        }}
+                        formatter={(value: number, name: string) => [
+                          `${value} advisories`,
+                          name
+                        ]}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>

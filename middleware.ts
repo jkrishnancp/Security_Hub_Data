@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { prisma } from '@/lib/prisma';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,20 +17,6 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Check if system needs onboarding
-    const adminCount = await prisma.user.count({
-      where: {
-        role: 'ADMIN',
-        active: true
-      }
-    });
-
-    // If no admin users exist, redirect to onboarding
-    if (adminCount === 0) {
-      const onboardingUrl = new URL('/onboarding', request.url);
-      return NextResponse.redirect(onboardingUrl);
-    }
-
     // For protected routes, check authentication
     const protectedPaths = [
       '/dashboard',

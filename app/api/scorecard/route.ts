@@ -3,44 +3,48 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Simple in-memory cache
+const scorecardCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔍 Scorecard API: Checking session...');
     const session = await getServerSession(authOptions);
-    console.log('👤 Session status:', session ? 'authenticated' : 'not authenticated');
     
     if (!session) {
-      console.log('❌ Scorecard API: No valid session found');
       return NextResponse.json({ 
         error: 'Unauthorized',
         details: 'Please log in to access scorecard data'
       }, { status: 401 });
     }
 
-    console.log('✅ Scorecard API: User authenticated:', session.user?.email);
-
     // Get date parameter from query string
     const { searchParams } = new URL(request.url);
     const selectedDate = searchParams.get('date');
 
-    // Get the selected or latest scorecard rating
-    const latestRating = selectedDate 
-      ? await prisma.scorecardRating.findFirst({
+    // Check cache first
+    const cacheKey = `scorecard-${selectedDate || 'latest'}`;
+    const cached = scorecardCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return NextResponse.json(cached.data);
+    }
+
+    // Get the selected or latest scorecard rating WITH previous rating in one optimized query
+    const ratings = selectedDate 
+      ? await prisma.scorecardRating.findMany({
           where: {
-            reportDate: new Date(selectedDate)
-          }
+            reportDate: { lte: new Date(selectedDate) }
+          },
+          orderBy: { reportDate: 'desc' },
+          take: 2
         })
-      : await prisma.scorecardRating.findFirst({
-          orderBy: { reportDate: 'desc' }
+      : await prisma.scorecardRating.findMany({
+          orderBy: { reportDate: 'desc' },
+          take: 2
         });
 
-    // Get previous rating for trend comparison
-    const previousRating = await prisma.scorecardRating.findFirst({
-      where: {
-        reportDate: { lt: latestRating?.reportDate ?? undefined }
-      },
-      orderBy: { reportDate: 'desc' }
-    });
+    const latestRating = ratings[0];
+    const previousRating = ratings[1];
 
     console.log('📊 Scorecard API: Latest rating found:', !!latestRating);
     if (latestRating) {
@@ -57,52 +61,52 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Get detailed issues from the new table (excluding INFO severity)
-    // First try to find issues from the exact date
-    let issuesRaw = await prisma.scorecardIssueDetail.findMany({
+    // Get detailed issues in one optimized query
+    const issuesRaw = await prisma.scorecardIssueDetail.findMany({
       where: {
-        reportDate: latestRating.reportDate,
+        reportDate: {
+          lte: latestRating.reportDate
+        },
         status: 'active',
-        NOT: {
-          issueTypeSeverity: 'INFO'
+        issueTypeSeverity: {
+          in: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] // Exclude INFO
         }
       },
-      take: 50 // Limit to top 50 issues
+      orderBy: [
+        { reportDate: 'desc' },
+        { issueTypeScoreImpact: 'desc' }
+      ],
+      // Get all issues for proper grouping - no limit
     });
 
-    // If no issues found for exact date, find issues from the most recent date
-    if (issuesRaw.length === 0) {
-      console.log('🔍 No issues found for exact rating date, searching for most recent issues...');
-      
-      // Get the most recent issue date
-      const mostRecentIssueDate = await prisma.scorecardIssueDetail.findFirst({
-        where: {
-          status: 'active',
-          NOT: {
-            issueTypeSeverity: 'INFO'
-          }
-        },
-        orderBy: { reportDate: 'desc' },
-        select: { reportDate: true }
-      });
-
-      if (mostRecentIssueDate) {
-        console.log(`📅 Found issues from date: ${mostRecentIssueDate.reportDate.toISOString().split('T')[0]}`);
-        
-        issuesRaw = await prisma.scorecardIssueDetail.findMany({
-          where: {
-            reportDate: mostRecentIssueDate.reportDate,
-            status: 'active',
-            NOT: {
-              issueTypeSeverity: 'INFO'
-            }
-          },
-          take: 50
-        });
-      }
-    }
-
     console.log(`📋 Found ${issuesRaw.length} non-INFO issues to display`);
+    
+    // Log category breakdown
+    const categoryStats = issuesRaw.reduce((acc, issue) => {
+      acc[issue.factorName] = (acc[issue.factorName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    console.log('📊 Issues by category:', categoryStats);
+    
+    // Log unique factorName values to debug
+    const uniqueFactorNames = Array.from(new Set(issuesRaw.map(i => i.factorName)));
+    console.log('🏷️ All unique factorName values:', uniqueFactorNames);
+    
+    // Log detailed breakdown to understand the exact factorName patterns
+    console.log('🔍 Detailed factorName analysis:');
+    Object.entries(categoryStats).forEach(([factorName, count]) => {
+      console.log(`  - "${factorName}": ${count} issues`);
+      // Check if this might be Application Security related
+      if (factorName.toLowerCase().includes('app') || 
+          factorName.toLowerCase().includes('web') || 
+          factorName.toLowerCase().includes('ssl') ||
+          factorName.toLowerCase().includes('tls') ||
+          factorName.toLowerCase().includes('certificate') ||
+          factorName.toLowerCase().includes('security') ||
+          count > 50) { // High count might indicate Application Security
+        console.log(`    ⚠️  Potential Application Security category: "${factorName}"`);
+      }
+    });
 
     // Sort issues by severity in proper order (Critical > High > Medium > Low)
     const severityOrder: Record<string, number> = {
@@ -213,39 +217,175 @@ export async function GET(request: NextRequest) {
       }
     ].sort((a, b) => a.score - b.score); // Sort by score ascending
 
-    // Convert issues to the expected format
-    const topIssues = issues.map(issue => ({
-      id: issue.id,
-      description: issue.issueTypeTitle || issue.description || 'No description',
-      severity: issue.issueTypeSeverity,
-      category: issue.factorName,
-      businessUnit: latestRating.company || 'NETGEAR',
-      openedDate: issue.firstSeen?.toISOString() || issue.createdAt.toISOString(),
-      impactScore: issue.issueTypeScoreImpact ?? null
-    }));
+    // Helper function to determine asset display value
+    const getAssetDisplay = (issue: any) => {
+      if (issue.finalUrl) {
+        return issue.finalUrl;
+      } else if (issue.subdomain) {
+        return issue.subdomain;
+      } else if (issue.hostname) {
+        return issue.hostname;
+      } else if (issue.target) {
+        return issue.target;
+      } else if (issue.ipAddresses) {
+        return issue.ipAddresses;
+      } else {
+        return 'No Asset Information Available';
+      }
+    };
 
-    // Get available dates for date picker
-    const availableDates = await prisma.scorecardRating.findMany({
-      select: {
-        reportDate: true
-      },
-      orderBy: { reportDate: 'desc' }
+    // Group issues by category and asset
+    const groupedIssuesMap = new Map<string, {
+      groupKey: string;
+      category: string;
+      asset: string;
+      issues: any[];
+      severity: string; // Highest severity in the group
+      totalImpactScore: number;
+      earliestOpenedDate: string;
+      businessUnit: string;
+      description: string;
+      count: number;
+    }>();
+
+    // Log first few Application Security issues to debug
+    const appSecIssues = issues.filter(i => i.factorName.toLowerCase().includes('application'));
+    console.log(`🔍 Found ${appSecIssues.length} Application Security issues for grouping`);
+    if (appSecIssues.length > 0) {
+      console.log('📝 First 3 App Security issues:', appSecIssues.slice(0, 3).map(i => ({
+        id: i.id,
+        factorName: i.factorName,
+        severity: i.issueTypeSeverity,
+        title: i.issueTypeTitle
+      })));
+    }
+
+    issues.forEach(issue => {
+      const asset = getAssetDisplay(issue);
+      
+      // If no valid asset info, create individual ungrouped entries (unique ID per issue)
+      // Otherwise, group by category + asset
+      const groupKey = asset === 'No Asset Information Available' 
+        ? `${issue.factorName}|NO_ASSET|${issue.id}` // Unique key for each issue without asset
+        : `${issue.factorName}|${asset}`;
+      
+      if (groupedIssuesMap.has(groupKey)) {
+        const existing = groupedIssuesMap.get(groupKey)!;
+        existing.issues.push(issue);
+        existing.count++;
+        existing.totalImpactScore += (issue.issueTypeScoreImpact ?? 0);
+        
+        // Update to highest severity (Critical > High > Medium > Low)
+        const severityOrder: Record<string, number> = { 'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+        if ((severityOrder[issue.issueTypeSeverity] ?? 0) > (severityOrder[existing.severity] ?? 0)) {
+          existing.severity = issue.issueTypeSeverity;
+        }
+        
+        // Keep earliest opened date
+        const issueDate = issue.firstSeen?.toISOString() || issue.createdAt.toISOString();
+        if (issueDate < existing.earliestOpenedDate) {
+          existing.earliestOpenedDate = issueDate;
+        }
+      } else {
+        groupedIssuesMap.set(groupKey, {
+          groupKey,
+          category: issue.factorName,
+          asset,
+          issues: [issue],
+          severity: issue.issueTypeSeverity,
+          totalImpactScore: issue.issueTypeScoreImpact ?? 0,
+          earliestOpenedDate: issue.firstSeen?.toISOString() || issue.createdAt.toISOString(),
+          businessUnit: latestRating.company || 'NETGEAR',
+          description: issue.issueTypeTitle || issue.description || 'No description',
+          count: 1
+        });
+      }
     });
 
+    console.log(`🔗 Grouped ${issuesRaw.length} issues into ${groupedIssuesMap.size} groups`);
+    
+    // Log group breakdown
+    const groupStats = {
+      totalGroups: groupedIssuesMap.size,
+      groupedIssues: 0,
+      ungroupedIssues: 0,
+      assetlessIssues: 0
+    };
+    
+    Array.from(groupedIssuesMap.values()).forEach(group => {
+      if (group.count > 1) {
+        console.log(`📦 Group: ${group.category} | ${group.asset} = ${group.count} issues`);
+        groupStats.groupedIssues += group.count;
+      } else {
+        groupStats.ungroupedIssues++;
+        if (group.asset === 'No Asset Information Available') {
+          groupStats.assetlessIssues++;
+        }
+      }
+    });
+    
+    console.log('📊 Grouping Stats:', groupStats);
+    console.log(`✅ Total issues processed: ${issuesRaw.length}`);
+    console.log(`📋 Total groups/items to display: ${groupedIssuesMap.size}`);
+
+    // Convert grouped issues to the expected format, sorted by total impact score
+    const topIssues = Array.from(groupedIssuesMap.values())
+      .sort((a, b) => b.totalImpactScore - a.totalImpactScore)
+      // Show all grouped issues - no limit
+      .map(group => ({
+        id: group.groupKey,
+        description: group.count > 1 
+          ? `${group.description} (${group.count} issues)` 
+          : group.description,
+        severity: group.severity,
+        category: group.category,
+        businessUnit: group.businessUnit,
+        openedDate: group.earliestOpenedDate,
+        impactScore: group.totalImpactScore,
+        asset: group.asset,
+        count: group.count,
+        groupedIssues: group.issues.map(issue => ({
+          id: issue.id,
+          description: issue.issueTypeTitle || issue.description || 'No description',
+          severity: issue.issueTypeSeverity,
+          impactScore: issue.issueTypeScoreImpact ?? 0,
+          openedDate: issue.firstSeen?.toISOString() || issue.createdAt.toISOString()
+        }))
+      }));
+
+    // Get available dates for date picker (cache this too since it rarely changes)
+    const availableDatesCache = scorecardCache.get('available-dates');
+    let availableDates;
+    
+    if (availableDatesCache && Date.now() - availableDatesCache.timestamp < CACHE_DURATION * 2) {
+      availableDates = availableDatesCache.data;
+    } else {
+      const dateResults = await prisma.scorecardRating.findMany({
+        select: {
+          reportDate: true
+        },
+        orderBy: { reportDate: 'desc' },
+        take: 10 // Limit to last 10 dates for performance
+      });
+      availableDates = dateResults.map(d => d.reportDate);
+      scorecardCache.set('available-dates', { data: availableDates, timestamp: Date.now() });
+    }
+
     const scorecard = {
-      overallScore: latestRating.threatIndicatorsScore ?? 0, // Use Threat Indicators as Overall Security Rating
+      overallScore: latestRating.threatIndicatorsScore ?? 0,
       letterGrade: latestRating.letterGrade,
       categories,
       topIssues,
+      totalIssueCount: issuesRaw.length, // Total individual issues from database
       numberOfIpAddressesScanned: latestRating.numberOfIpAddressesScanned ?? 0,
       numberOfDomainNamesScanned: latestRating.numberOfDomainNamesScanned ?? 0,
       selectedDate: latestRating.reportDate,
-      availableDates: availableDates.map(d => d.reportDate),
+      availableDates,
       hasPreviousData: !!previousRating
     };
 
-    console.log('✅ Scorecard API: Returning data with', categories.length, 'categories and', topIssues.length, 'issues');
-    console.log('📈 Categories:', categories.map(c => `${c.name}: ${c.score}`));
+    // Cache the result
+    scorecardCache.set(cacheKey, { data: scorecard, timestamp: Date.now() });
     
     return NextResponse.json(scorecard);
 

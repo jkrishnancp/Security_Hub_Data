@@ -4,10 +4,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from '@/components/theme-provider';
 import AuthGuard from '@/lib/auth-guard';
 import NavBar from '@/components/nav-bar';
-import { Filter, RefreshCw, Clock, Cloud, ArrowUpDown } from "lucide-react";
+import { Filter, RefreshCw, Clock, Cloud, ArrowUpDown, ChevronDown, ChevronUp, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
@@ -27,7 +29,7 @@ export default function CloudFindings() {
   const [query, setQuery] = useState("");
 
   // Table filters (no time filter, and Support/Sensor Type removed)
-  const [tableSeverityFilter, setTableSeverityFilter] = useState<string>("ALL");
+  const [tableSeverityFilter, setTableSeverityFilter] = useState<string[]>([]);
   const [tableControlStatusFilter, setTableControlStatusFilter] = useState<string>("ALL");
   const [tableServiceFilter, setTableServiceFilter] = useState<string>("ALL");
   const [tableComplianceFilter, setTableComplianceFilter] = useState<string>("ALL");
@@ -112,10 +114,10 @@ export default function CloudFindings() {
     };
   }, [searched]);
 
-  // -------- Table rows (search + filters) --------
+  // -------- Table rows (search + filters) - NO SORTING HERE, let table handle it --------
   const tableRows = useMemo(() => {
     return searched
-      .filter((r) => tableSeverityFilter === "ALL" || (r.severity || '').toLowerCase() === tableSeverityFilter.toLowerCase())
+      .filter((r) => tableSeverityFilter.length === 0 || tableSeverityFilter.includes(r.severity || 'Unknown'))
       .filter((r) => tableControlStatusFilter === "ALL" || (r.controlStatus || '').toLowerCase() === tableControlStatusFilter.toLowerCase())
       .filter((r) => {
         if (tableServiceFilter === "ALL") return true;
@@ -126,14 +128,8 @@ export default function CloudFindings() {
         if (tableComplianceFilter === "ALL") return true;
         const requirements = String(r.relatedRequirements || '').toLowerCase();
         return requirements.includes(tableComplianceFilter.toLowerCase());
-      })
-      .sort((a, b) => {
-        const severityOrder: Record<string, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 } as any;
-        const aSev = severityOrder[a.severity] || 0;
-        const bSev = severityOrder[b.severity] || 0;
-        if (aSev !== bSev) return bSev - aSev;
-        return (b.failedChecks || 0) - (a.failedChecks || 0);
       });
+      // Removed sorting - let the table component handle all sorting
   }, [searched, tableSeverityFilter, tableControlStatusFilter, tableServiceFilter, tableComplianceFilter]);
 
   const uniqueSeverities = useMemo(() => {
@@ -201,7 +197,6 @@ export default function CloudFindings() {
           <Card className={cn("mb-8 shadow-sm border", isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200")}> 
             <CardHeader className="pb-2">
               <CardTitle className={cn("text-lg font-semibold", isDark ? "text-white" : "text-gray-900")}>Overview</CardTitle>
-              <CardDescription className={cn(isDark ? "text-gray-400" : "text-gray-600")}>Metrics update automatically from the database</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-8">
@@ -253,13 +248,66 @@ export default function CloudFindings() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <label className={cn("text-sm font-medium", isDark ? "text-gray-300" : "text-gray-700")}>Severity</label>
-                  <Select value={tableSeverityFilter} onValueChange={setTableSeverityFilter}>
-                    <SelectTrigger className={cn(isDark ? "bg-gray-700 border-gray-600" : "bg-white")}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">All Severities</SelectItem>
-                      {uniqueSeverities.map(s => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-between",
+                          isDark ? "bg-gray-700 border-gray-600 hover:bg-gray-600" : "bg-white hover:bg-gray-50"
+                        )}
+                      >
+                        <span className="text-left">
+                          {tableSeverityFilter.length === 0 
+                            ? "All Severities" 
+                            : tableSeverityFilter.length === 1 
+                            ? tableSeverityFilter[0] 
+                            : `${tableSeverityFilter.length} selected`
+                          }
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className={cn("w-64 p-3", isDark ? "bg-gray-800 border-gray-700" : "bg-white")}>
+                      <div className="space-y-2">
+                        <div className={cn("text-sm font-medium", isDark ? "text-gray-300" : "text-gray-700")}>Select Severities</div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {uniqueSeverities.map(severity => (
+                            <div key={severity} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`severity-${severity}`}
+                                checked={tableSeverityFilter.includes(severity)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setTableSeverityFilter(prev => [...prev, severity]);
+                                  } else {
+                                    setTableSeverityFilter(prev => prev.filter(s => s !== severity));
+                                  }
+                                }}
+                                className={cn(isDark ? "border-gray-600" : "border-gray-300")}
+                              />
+                              <label 
+                                htmlFor={`severity-${severity}`} 
+                                className={cn("text-sm cursor-pointer", isDark ? "text-gray-300" : "text-gray-700")}
+                              >
+                                {severity}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setTableSeverityFilter([])}
+                            className="w-full h-8 text-xs"
+                          >
+                            Clear Selection
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-2">
                   <label className={cn("text-sm font-medium", isDark ? "text-gray-300" : "text-gray-700")}>Control Status</label>
@@ -296,7 +344,7 @@ export default function CloudFindings() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => { setTableSeverityFilter("ALL"); setTableControlStatusFilter("ALL"); setTableServiceFilter("ALL"); setTableComplianceFilter("ALL"); }}
+                  onClick={() => { setTableSeverityFilter([]); setTableControlStatusFilter("ALL"); setTableServiceFilter("ALL"); setTableComplianceFilter("ALL"); }}
                 >
                   Clear Filters
                 </Button>
@@ -337,8 +385,14 @@ function SortButton({ label, active, direction, onClick, isDark }: { label: stri
       )}
     >
       <span className="font-medium">{label}</span>
-      <ArrowUpDown className={cn("h-3.5 w-3.5", active ? "opacity-100" : "opacity-60")} />
-      <span className="sr-only">Sort</span>
+      {active ? (
+        direction === "asc" ? 
+          <ChevronUp className="h-3.5 w-3.5" /> : 
+          <ChevronDownIcon className="h-3.5 w-3.5" />
+      ) : (
+        <ArrowUpDown className="h-3.5 w-3.5 opacity-60" />
+      )}
+      <span className="sr-only">Sort {active ? (direction === "asc" ? "ascending" : "descending") : ""}</span>
     </button>
   );
 }
@@ -349,20 +403,32 @@ function FindingsTable({ items, isDark, onRowClick }: { items: any[]; isDark: bo
   const [rowsPerPage, setRowsPerPage] = useState<number>(50);
   const [page, setPage] = useState<number>(1); // 1-based
 
+  // Reset pagination when items change (due to filtering)
+  useEffect(() => {
+    setPage(1);
+  }, [items]);
+
   const sorted = useMemo(() => {
     const arr = [...items];
     arr.sort((a, b) => {
       let av: any, bv: any;
       switch (sortKey) {
         case "severity": {
-          const order: Record<string, number> = { Critical: 4, High: 3, Medium: 2, Low: 1 } as any;
-          av = order[a.severity] || 0; bv = order[b.severity] || 0; break;
+          const order: Record<string, number> = { 
+            'CRITICAL': 4, 'Critical': 4,
+            'HIGH': 3, 'High': 3,
+            'MEDIUM': 2, 'Medium': 2,
+            'LOW': 1, 'Low': 1
+          };
+          av = order[a.severity] || 0; 
+          bv = order[b.severity] || 0; 
+          break;
         }
         case "controlStatus":
         case "controlId":
         case "title": {
-          av = (a[sortKey] || "").toString().toLowerCase();
-          bv = (b[sortKey] || "").toString().toLowerCase();
+          av = String(a[sortKey] || "").toLowerCase().trim();
+          bv = String(b[sortKey] || "").toLowerCase().trim();
           break;
         }
         case "failedChecks":
@@ -375,7 +441,12 @@ function FindingsTable({ items, isDark, onRowClick }: { items: any[]; isDark: bo
           bv = new Date(b.foundAt || b.createdAt || 0).getTime();
         }
       }
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      let cmp: number;
+      if (typeof av === 'string' && typeof bv === 'string') {
+        cmp = av.localeCompare(bv);
+      } else {
+        cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      }
       return sortDir === "asc" ? cmp : -cmp;
     });
     return arr;
@@ -389,9 +460,14 @@ function FindingsTable({ items, isDark, onRowClick }: { items: any[]; isDark: bo
   const paged = sorted.slice(startIndex, startIndex + rowsPerPage);
 
   function toggleSort(key: string) {
+    setPage(1); // Reset to first page when sorting changes
     setSortKey((prev) => {
-      if (prev === key) { setSortDir((d) => (d === "asc" ? "desc" : "asc")); return prev; }
-      setSortDir(key === "foundAt" ? "desc" : "asc");
+      if (prev === key) { 
+        setSortDir((d) => d === "asc" ? "desc" : "asc"); 
+        return prev; 
+      }
+      // Set default sort direction based on field type
+      setSortDir(key === "foundAt" || key === "failedChecks" || key === "passedChecks" || key === "severity" ? "desc" : "asc");
       return key;
     });
   }

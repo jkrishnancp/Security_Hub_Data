@@ -4,6 +4,7 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import { ThemeProvider } from '@/components/theme-provider';
+import OnboardingGuard from '@/components/onboarding-guard';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,7 +18,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider defaultTheme="system" storageKey="security-data-hub-theme">
           <SessionProvider>
-            {children}
+            <OnboardingGuard>
+              {children}
+            </OnboardingGuard>
           </SessionProvider>
         </ThemeProvider>
       </body>
