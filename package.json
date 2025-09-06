@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "prestart": "prisma migrate deploy || prisma db push",
     "start": "next start",
+    "db:studio": "prisma studio",
+    "db:dump:xdr": "node -e \"const {PrismaClient}=require('@prisma/client'); const p=new PrismaClient(); (async()=>{const rows=await p.toolMetricsXdr.findMany({orderBy:{periodMonth:'desc'}}); console.table(rows.map(r=>({periodMonth:r.periodMonth.toISOString().slice(0,10), periodQuarter:r.periodQuarter, eventsTb:r.eventsTb, detections:r.detections, triagedEvents:r.triagedEvents, investigations:r.investigations, incidents:r.incidents}))); await p.$disconnect();})();\"",
     "lint": "next lint",
     "postinstall": "npx prisma generate"
   },
@@ -13,7 +16,7 @@
     "@hookform/resolvers": "^3.10.0",
     "@next/swc-wasm-nodejs": "13.5.1",
     "@prisma/adapter-libsql": "^6.14.0",
-    "@prisma/client": "^6.14.0",
+    "@prisma/client": "^6.15.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",

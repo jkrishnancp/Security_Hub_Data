@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import AuthGuard from '@/lib/auth-guard';
-import NavBar from '@/components/nav-bar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import ProgressPie from '@/components/ui/progress-pie';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -269,7 +268,7 @@ This action cannot be undone. Recent data will be permanently removed from the d
   return (
     <AuthGuard requiredRole="ANALYST">
       <div className="min-h-screen bg-gray-50">
-        <NavBar />
+        
         
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
@@ -389,13 +388,15 @@ This action cannot be undone. Recent data will be permanently removed from the d
                 )}
               </div>
 
-              {/* Progress Bar */}
+              {/* Progress Pie */}
               {uploading && (
                 <div className="mt-4">
-                  <Progress value={uploadProgress} className="w-full" />
-                  <p className="text-sm text-gray-500 mt-2">
-                    Uploading and processing... {uploadProgress}%
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <ProgressPie value={uploadProgress} />
+                    <p className="text-sm text-gray-500">
+                      Uploading and processing... {uploadProgress}%
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>

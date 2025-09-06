@@ -28,7 +28,6 @@ import {
 import { useSession } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
 import AuthGuard from '@/lib/auth-guard';
-import NavBar from '@/components/nav-bar';
 import { 
   METALLIC_COLORS, 
   getSeverityColor, 
@@ -451,7 +450,6 @@ export default function OpenItemsPage() {
 
   return (
     <AuthGuard>
-      <NavBar />
       <div className={cn(
         "min-h-screen w-full transition-colors duration-200",
         isDark ? "bg-gray-900" : "bg-gray-50"
