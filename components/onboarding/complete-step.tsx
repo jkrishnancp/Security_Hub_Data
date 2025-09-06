@@ -212,17 +212,17 @@ export default function CompleteStep({ data, onComplete, onBack, isDark }: Compl
       {/* What Happens Next */}
       <Card className={cn(
         "border-2",
-        isDark ? "bg-blue-900/5 border-blue-800" : "bg-blue-50 border-blue-200"
+        isDark ? "bg-primary/5 border-primary/20" : "bg-primary/10 border-primary/30"
       )}>
         <CardContent className="pt-6">
           <div className="flex items-start gap-4">
             <div className={cn(
               "p-2 rounded-full",
-              isDark ? "bg-blue-900/20" : "bg-blue-100"
+              isDark ? "bg-primary/20" : "bg-primary/15"
             )}>
               <ArrowRight className={cn(
                 "h-5 w-5",
-                isDark ? "text-blue-400" : "text-blue-600"
+                "text-primary"
               )} />
             </div>
             <div>

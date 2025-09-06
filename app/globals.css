@@ -38,6 +38,7 @@
 
 @layer base {
   :root {
+    /* Light theme (unchanged for now) */
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -65,30 +66,32 @@
     --radius: 0.5rem;
   }
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    /* Cinematic Noir (Netflix-inspired) */
+    --background: 210 20% 6%;           /* #0B0D10 */
+    --foreground: 210 10% 92%;          /* #E6E8EA */
+    --card: 215 20% 10%;                /* #12151A */
+    --card-foreground: 210 10% 92%;     /* #E6E8EA */
+    --popover: 215 20% 10%;             /* #12151A */
+    --popover-foreground: 210 10% 92%;  /* #E6E8EA */
+    --primary: 357 92% 47%;             /* #E50914 */
+    --primary-foreground: 0 0% 98%;     /* near-white */
+    --secondary: 215 14% 14%;           /* deep slate */
+    --secondary-foreground: 210 10% 92%;
+    --muted: 215 14% 19%;               /* #2A2F36 */
+    --muted-foreground: 210 14% 68%;    /* #A7ADB3 */
+    --accent: 0 100% 61%;               /* #FF3B3B */
+    --accent-foreground: 210 20% 6%;    /* near-black for contrast */
+    --destructive: 357 85% 38%;         /* deeper red */
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --border: 215 12% 24%;              /* subtle borders */
+    --input: 215 12% 24%;
+    --ring: 357 92% 47%;                /* focus ring in red */
+    /* Chart palette tuned for dark */
+    --chart-1: 357 92% 47%;             /* red */
+    --chart-2: 172 72% 40%;             /* teal */
+    --chart-3: 262 89% 66%;             /* purple */
+    --chart-4: 42 96% 50%;              /* amber */
+    --chart-5: 160 84% 36%;             /* green */
   }
 }
 

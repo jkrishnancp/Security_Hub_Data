@@ -115,11 +115,11 @@ export default function ProfileStep({ data, adminEmail, onUpdate, onNext, onBack
         <div className="flex items-center justify-center mb-6">
           <div className={cn(
             "p-4 rounded-full",
-            isDark ? "bg-blue-900/20" : "bg-blue-50"
+            isDark ? "bg-primary/20" : "bg-primary/10"
           )}>
             <User className={cn(
               "h-12 w-12",
-              isDark ? "text-blue-400" : "text-blue-600"
+              "text-primary"
             )} />
           </div>
         </div>

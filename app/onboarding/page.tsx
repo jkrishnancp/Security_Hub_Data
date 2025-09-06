@@ -133,7 +133,7 @@ export default function OnboardingPage() {
         isDark ? "bg-gray-900" : "bg-gray-50"
       )}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className={cn(
             "text-sm",
             isDark ? "text-gray-400" : "text-gray-600"
@@ -181,9 +181,7 @@ export default function OnboardingPage() {
                 <div className={cn(
                   "flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium",
                   index <= currentStep
-                    ? isDark 
-                      ? "bg-blue-600 text-white" 
-                      : "bg-blue-600 text-white"
+                    ? "bg-primary text-primary-foreground"
                     : isDark
                       ? "bg-gray-700 text-gray-400"
                       : "bg-gray-200 text-gray-500"

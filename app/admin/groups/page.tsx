@@ -322,11 +322,11 @@ export default function GroupManagementPage() {
                       <div className="flex items-center space-x-3">
                         <div className={cn(
                           "p-2 rounded-lg",
-                          isDark ? "bg-blue-900/20" : "bg-blue-50"
+                          isDark ? "bg-primary/20" : "bg-primary/10"
                         )}>
                           <UserCog className={cn(
                             "h-5 w-5",
-                            isDark ? "text-blue-400" : "text-blue-600"
+                            "text-primary"
                           )} />
                         </div>
                         <div>
@@ -381,29 +381,28 @@ export default function GroupManagementPage() {
           {/* Feature Notice */}
           <Card className={cn(
             "mt-8",
-            isDark ? "bg-blue-900/10 border-blue-800" : "bg-blue-50 border-blue-200"
+            isDark ? "bg-primary/10 border-primary/20" : "bg-primary/10 border-primary/30"
           )}>
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className={cn(
                   "p-2 rounded-lg shrink-0",
-                  isDark ? "bg-blue-900/20" : "bg-blue-100"
+                  isDark ? "bg-primary/20" : "bg-primary/15"
                 )}>
                   <UserCog className={cn(
                     "h-5 w-5",
-                    isDark ? "text-blue-400" : "text-blue-600"
+                    "text-primary"
                   )} />
                 </div>
                 <div>
                   <h3 className={cn(
-                    "font-medium mb-1",
-                    isDark ? "text-blue-200" : "text-blue-900"
+                    "font-medium mb-1 text-primary"
                   )}>
                     Group Management Features
                   </h3>
                   <p className={cn(
                     "text-sm",
-                    isDark ? "text-blue-300" : "text-blue-700"
+                    isDark ? "text-gray-300" : "text-gray-700"
                   )}>
                     This is a preview of the group management system. Full functionality includes:
                     role-based permissions, bulk user management, group-based data access controls,

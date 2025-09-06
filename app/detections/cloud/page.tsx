@@ -201,11 +201,11 @@ export default function CloudFindings() {
             <CardContent className="space-y-6">
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <div className={cn("text-sm font-medium mb-1", isDark ? "text-blue-300" : "text-blue-700")}>Security score</div>
+                  <div className={cn("text-sm font-medium mb-1", "text-primary")}>Security score</div>
                   <div className={cn("text-5xl font-extrabold leading-none", isDark ? "text-white" : "text-gray-900")}>{controlsRollup.score}%</div>
                   <div className={cn("mt-1 text-sm", isDark ? "text-gray-300" : "text-gray-600")}>{controlsRollup.passed} of {controlsRollup.total} controls passed</div>
 
-                  <div className={cn("mt-6 text-sm font-medium mb-2", isDark ? "text-blue-300" : "text-blue-700")}>Control status</div>
+                  <div className={cn("mt-6 text-sm font-medium mb-2", "text-primary")}>Control status</div>
                   <div className="w-full h-3 rounded bg-gray-200 overflow-hidden dark:bg-gray-700">
                     <div className="h-full" style={{ width: `${(controlsRollup.passed / Math.max(1, controlsRollup.total)) * 100}%`, backgroundColor: METALLIC_COLORS.primary, display: 'inline-block' }} title="Passed" />
                     <div className="h-full" style={{ width: `${(controlsRollup.failed / Math.max(1, controlsRollup.total)) * 100}%`, backgroundColor: METALLIC_COLORS.critical, display: 'inline-block' }} title="Failed" />
@@ -216,17 +216,17 @@ export default function CloudFindings() {
                   <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
                     <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: METALLIC_COLORS.primary }} /> <span className={cn(isDark ? "text-gray-200" : "text-gray-700")}>{controlsRollup.passed} Passed</span></div>
                     <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: METALLIC_COLORS.critical }} /> <span className={cn(isDark ? "text-gray-200" : "text-gray-700")}>{controlsRollup.failed} Failed</span></div>
-                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded bg-blue-500" /> <span className={cn(isDark ? "text-gray-200" : "text-gray-700")}>{controlsRollup.noData} No data</span></div>
+                    <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded bg-primary" /> <span className={cn(isDark ? "text-gray-200" : "text-gray-700")}>{controlsRollup.noData} No data</span></div>
                     <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded bg-amber-500" /> <span className={cn(isDark ? "text-gray-200" : "text-gray-700")}>{controlsRollup.unknown} Unknown</span></div>
                     <div className="flex items-center gap-2"><span className="inline-block w-3 h-3 rounded bg-gray-400" /> <span className={cn(isDark ? "text-gray-200" : "text-gray-700")}>{controlsRollup.disabled} Disabled</span></div>
                   </div>
                 </div>
 
                 <div>
-                  <div className={cn("text-sm font-medium mb-1", isDark ? "text-blue-300" : "text-blue-700")}>Failed checks</div>
+                  <div className={cn("text-sm font-medium mb-1", "text-primary")}>Failed checks</div>
                   <div className={cn("text-5xl font-extrabold leading-none", isDark ? "text-white" : "text-gray-900")}>{checksRollup.failed.toLocaleString()} <span className={cn("text-2xl font-semibold ml-2", isDark ? "text-gray-300" : "text-gray-600")}>/ {checksRollup.total.toLocaleString()}</span></div>
 
-                  <div className={cn("mt-6 text-sm font-medium mb-2", isDark ? "text-blue-300" : "text-blue-700")}>Failed checks by severity</div>
+                  <div className={cn("mt-6 text-sm font-medium mb-2", "text-primary")}>Failed checks by severity</div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="space-y-1"><div className="inline-block px-2 py-0.5 rounded text-xs font-bold tracking-wide" style={{ backgroundColor: METALLIC_COLORS.critical, color: '#fff' }}>CRITICAL</div><div className={cn("text-xl font-semibold", isDark ? "text-white" : "text-gray-900")}>{failedBySeverity.CRITICAL.toLocaleString()}</div></div>
                     <div className="space-y-1"><div className="inline-block px-2 py-0.5 rounded text-xs font-bold tracking-wide" style={{ backgroundColor: METALLIC_COLORS.high, color: '#fff' }}>HIGH</div><div className={cn("text-xl font-semibold", isDark ? "text-white" : "text-gray-900")}>{failedBySeverity.HIGH.toLocaleString()}</div></div>
@@ -502,7 +502,7 @@ function FindingsTable({ items, isDark, onRowClick }: { items: any[]; isDark: bo
           ) : (
             paged.map((r, idx) => (
               <tr key={`${r.controlId || 'id'}-${startIndex + idx}`} onClick={() => onRowClick?.(r)} className={cn("border-b transition-colors cursor-pointer", isDark ? "border-gray-700 hover:bg-gray-700/50" : "border-gray-200 hover:bg-gray-50")}> 
-                <td className={cn("p-3 whitespace-nowrap font-mono text-sm", isDark ? "text-blue-400" : "text-blue-600")}>{r.controlId || "—"}</td>
+                <td className={cn("p-3 whitespace-nowrap font-mono text-sm", "text-primary")}>{r.controlId || "—"}</td>
                 <td className="p-3 whitespace-nowrap"><Badge className={getSeverityBadgeClass(r.severity || 'Unknown', isDark)}>{r.severity || 'Unknown'}</Badge></td>
                 <td className="p-3 whitespace-nowrap"><Badge variant={r.controlStatus === 'Failed' ? 'destructive' : r.controlStatus === 'Passed' ? 'default' : 'secondary'}>{r.controlStatus || 'Unknown'}</Badge></td>
                 <td className={cn("p-3 whitespace-nowrap font-semibold", (r.failedChecks||0)>0 ? (isDark?"text-red-400":"text-red-600") : (isDark?"text-gray-400":"text-gray-500"))}>{r.failedChecks || 0}</td>

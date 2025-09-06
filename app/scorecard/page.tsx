@@ -37,7 +37,7 @@ import {
   Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { METALLIC_COLORS } from '@/lib/theme-config';
+import { METALLIC_COLORS, getSeverityBadgeClass } from '@/lib/theme-config';
 import DetailPanel from '@/components/detail-panel';
 
 interface ScorecardData {
@@ -94,7 +94,8 @@ export default function ScorecardPage() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{success: boolean, message: string, type?: string, rowsProcessed?: number} | null>(null);
+  const [uploadResults, setUploadResults] = useState<Array<{ filename: string; success: boolean; message: string; type?: string; rowsProcessed?: number }>>([]);
+  const [sortBy, setSortBy] = useState<string>('SEVERITY'); // Default: severity
 
   const fetchScorecard = async (date?: string) => {
     try {
@@ -169,18 +170,29 @@ export default function ScorecardPage() {
     return matchesSeverity && matchesCategory && matchesSearch;
   }) || [];
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'CRITICAL': return 'badge-critical';
-      case 'HIGH': return 'badge-high';
-      case 'MEDIUM': return 'badge-medium';
-      case 'LOW': return 'badge-low';
-      default: return cn(
-        'px-2 py-1 rounded-md text-xs font-medium border',
-        isDark ? 'bg-gray-800 text-gray-200 border-gray-600' : 'bg-gray-100 text-gray-800 border-gray-200'
-      );
+  const severityRank: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+  const sortedIssues = [...filteredIssues].sort((a, b) => {
+    switch (sortBy) {
+      case 'SEVERITY': {
+        const rA = severityRank[a.severity] || 0;
+        const rB = severityRank[b.severity] || 0;
+        if (rA !== rB) return rB - rA; // higher severity first
+        // tie-breaker: higher impact first
+        if (a.impactScore !== b.impactScore) return (b.impactScore || 0) - (a.impactScore || 0);
+        return new Date(b.openedDate).getTime() - new Date(a.openedDate).getTime();
+      }
+      case 'IMPACT':
+        return (b.impactScore || 0) - (a.impactScore || 0);
+      case 'COUNT':
+        return (b.count || 0) - (a.count || 0);
+      case 'DATE':
+        return new Date(b.openedDate).getTime() - new Date(a.openedDate).getTime();
+      default:
+        return 0;
     }
-  };
+  });
+
+  const getSeverityBadge = (severity: string) => getSeverityBadgeClass(severity, isDark);
 
 
   const toggleGroupExpansion = (groupId: string) => {
@@ -197,12 +209,12 @@ export default function ScorecardPage() {
 
   const handleFileUpload = async (file: File) => {
     if (!session?.user || (session.user as any).role !== 'ADMIN') {
-      setUploadResult({ success: false, message: 'Admin access required for importing scorecard data.' });
+      setUploadResults(prev => ([...prev, { filename: file.name, success: false, message: 'Admin access required for importing scorecard data.' }]));
       return;
     }
 
     setUploading(true);
-    setUploadResult(null);
+    setUploadResults(prev => prev.filter(r => r.filename !== file.name));
 
     try {
       const formData = new FormData();
@@ -216,28 +228,37 @@ export default function ScorecardPage() {
       const result = await response.json();
       
       if (response.ok) {
-        setUploadResult({
-          success: true,
-          message: 'File uploaded successfully!',
-          type: result.type,
-          rowsProcessed: result.rowsProcessed
-        });
+        setUploadResults(prev => ([
+          ...prev,
+          {
+            filename: file.name,
+            success: true,
+            message: 'Uploaded and processed successfully',
+            type: result.type,
+            rowsProcessed: result.rowsProcessed,
+          }
+        ]));
         
         // Refresh scorecard data
         await fetchScorecard();
       } else {
-        setUploadResult({
-          success: false,
-          message: result.error || 'Upload failed'
-        });
+        setUploadResults(prev => ([...prev, { filename: file.name, success: false, message: result.error || 'Upload failed' }]));
       }
     } catch (error) {
-      setUploadResult({
-        success: false,
-        message: error instanceof Error ? error.message : 'Upload failed'
-      });
+      setUploadResults(prev => ([...prev, { filename: file.name, success: false, message: error instanceof Error ? error.message : 'Upload failed' }]));
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleMultipleFilesUpload = async (files: FileList) => {
+    for (const file of Array.from(files)) {
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        setUploadResults(prev => ([...prev, { filename: file.name, success: false, message: 'Only CSV files are supported for this import.' }]));
+        continue;
+      }
+      // eslint-disable-next-line no-await-in-loop
+      await handleFileUpload(file);
     }
   };
 
@@ -251,7 +272,7 @@ export default function ScorecardPage() {
               <div className="text-center">
                 <RefreshCw className={cn(
                   "h-8 w-8 animate-spin mx-auto mb-4",
-                  isDark ? "text-blue-400" : "text-blue-600"
+                  "text-primary"
                 )} />
                 <p className={cn(
                   isDark ? "text-gray-400" : "text-gray-500"
@@ -326,54 +347,55 @@ export default function ScorecardPage() {
                       Import Data
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Import Scorecard Data</DialogTitle>
                       <DialogDescription>
-                        Import NETGEAR Security Scorecard files to update ratings and issues data
+                        Import two SecurityScorecard CSVs to update scores, spider charts, and issues.
                       </DialogDescription>
                     </DialogHeader>
                     
                     <div className="space-y-6">
                       {/* File Requirements */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
                         <div className="flex items-start">
-                          <Info className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+                          <Info className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
                           <div>
-                            <h4 className="text-sm font-medium text-blue-800 mb-2">Required Files</h4>
-                            <p className="text-sm text-blue-700 mb-3">
+                            <h4 className="text-sm font-medium text-primary mb-2">Required Files</h4>
+                            <p className="text-sm text-primary mb-3">
                               Import requires TWO separate CSV files for complete scorecard functionality:
                             </p>
                             
                             <div className="space-y-4">
                               {/* Scorecard Report File */}
-                              <div className="bg-white rounded p-3 border border-blue-100">
+                              <div className="bg-white rounded p-3 border border-primary/20">
                                 <div className="flex items-center mb-2">
-                                  <FileText className="h-4 w-4 text-blue-600 mr-2" />
-                                  <span className="font-medium text-blue-800">1. Scorecard Summary Report</span>
+                                  <FileText className="h-4 w-4 text-primary mr-2" />
+                                  <span className="font-medium text-primary">1. Scorecard Summary Report (Field,Value)</span>
                                 </div>
-                                <p className="text-sm text-blue-700 mb-2">
-                                  <strong>Filename:</strong> <code className="bg-blue-100 px-1 rounded">NETGEAR_Scorecard_Report_YYYYMMDD.csv</code>
+                                <p className="text-sm text-primary mb-2">
+                                  <strong>Filename:</strong> <code className="bg-primary/15 px-1 rounded">NETGEAR_Scorecard_Report_YYYYMMDD.csv</code>
                                 </p>
-                                <p className="text-sm text-blue-600">Contains overall scores, letter grades, and category breakdowns for spider charts</p>
-                                <div className="mt-2 text-xs text-blue-600">
-                                  <strong>Expected fields:</strong> Company, Generated Date, Threat Indicators Score, Network Security Score, DNS Health Score, Patching Cadence Score, Application Security Score, etc.
+                                <p className="text-sm text-primary">Contains overall scores and metrics powering the spider chart.</p>
+                                <div className="mt-2 text-xs text-primary">
+                                  <strong>Sample rows:</strong> Company,NETGEAR • Generated Date,August 24, 2025 • Generated By,Jane Doe • Threat Indicators Score,89 • Network Security Score,93 • DNS Health Score,100 • Patching Cadence Score,92 • Endpoint Security Score,100 • IP Reputation Score,100 • Application Security Score,81 • Cubit Score,100 • Hacker Chatter Score,100 • Information Leak Score,100 • Social Engineering Score,100 • Industry,Technology • Company Website,netgear.com • Findings on Open Ports,17 • Site Vulnerabilities,111 • Malware Discovered,0 • Leaked Information,0 • Number of IP address Scanned,1870 • Number of Domain names Scanned,162
                                 </div>
                               </div>
 
                               {/* Full Issues Report File */}
-                              <div className="bg-white rounded p-3 border border-blue-100">
+                              <div className="bg-white rounded p-3 border border-primary/20">
                                 <div className="flex items-center mb-2">
-                                  <FileText className="h-4 w-4 text-blue-600 mr-2" />
-                                  <span className="font-medium text-blue-800">2. Full Issues Report</span>
+                                  <FileText className="h-4 w-4 text-primary mr-2" />
+                                  <span className="font-medium text-primary">2. Full Issues Report</span>
                                 </div>
-                                <p className="text-sm text-blue-700 mb-2">
-                                  <strong>Filename:</strong> <code className="bg-blue-100 px-1 rounded">NETGEAR_FullIssues_Report_YYYYMMDD.csv</code>
+                                <p className="text-sm text-primary mb-2">
+                                  <strong>Filename:</strong> <code className="bg-primary/15 px-1 rounded">NETGEAR_FullIssues_Report_YYYYMMDD.csv</code>
                                 </p>
-                                <p className="text-sm text-blue-600">Contains detailed security issues with asset information for grouping</p>
-                                <div className="mt-2 text-xs text-blue-600">
-                                  <strong>Expected fields:</strong> Issue ID, Factor Name, Issue Type Title, Issue Type Severity, IP Addresses, Hostname, Subdomain, Final URL, etc.
+                                <p className="text-sm text-primary">Contains detailed issues used to populate the Issues list and grouping.</p>
+                                <div className="mt-2 text-xs text-primary">
+                                  <strong>Key columns:</strong> ISSUE ID, FACTOR NAME, ISSUE TYPE TITLE, ISSUE TYPE CODE, ISSUE TYPE SEVERITY, ISSUE RECOMMENDATION, FIRST SEEN, LAST SEEN, IP ADDRESSES, HOSTNAME, SUBDOMAIN, TARGET, PORTS, STATUS, CVE, DESCRIPTION, TIME SINCE PUBLISHED, TIME OPEN SINCE PUBLISHED, COOKIE NAME, DATA, COMMON NAME, KEY LENGTH, USING RC4?, ISSUER ORGANIZATION NAME, PROVIDER, DETECTED SERVICE, PRODUCT, VERSION, PLATFORM, BROWSER, DESTINATION IPS, MALWARE FAMILY, MALWARE TYPE, DETECTION METHOD, LABEL, INITIAL URL, FINAL URL, REQUEST CHAIN, HEADERS, ANALYSIS, % OF SIMILAR COMPANIES WITH THE ISSUE, AVERAGE FINDINGS (similar companies), ISSUE TYPE SCORE IMPACT.
                                 </div>
+                                <p className="mt-2 text-xs text-primary">Tip: The system auto-detects file type by filename; order does not matter.</p>
                               </div>
                             </div>
                           </div>
@@ -385,15 +407,15 @@ export default function ScorecardPage() {
                         <h4 className="font-medium">Upload Files</h4>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                           <Upload className="h-8 w-8 mx-auto mb-4 text-gray-400" />
-                          <p className="text-sm text-gray-600 mb-2">
-                            {uploading ? 'Processing file...' : 'Drop files here or click to browse'}
-                          </p>
+                          <p className="text-sm text-gray-600 mb-2">{uploading ? 'Processing...' : 'Drop files here or click to select up to 2 CSVs'}</p>
                           <input
                             type="file"
                             accept=".csv"
+                            multiple
                             onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleFileUpload(file);
+                              if (e.target.files && e.target.files.length > 0) {
+                                handleMultipleFilesUpload(e.target.files);
+                              }
                             }}
                             disabled={uploading}
                             className="hidden"
@@ -401,36 +423,34 @@ export default function ScorecardPage() {
                           />
                           <label
                             htmlFor="scorecard-file-input"
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer hover:bg-blue-700 disabled:opacity-50"
+                            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90 disabled:opacity-50"
                           >
-                            Select CSV File
+                            Select CSV File(s)
                           </label>
                         </div>
 
                         {/* Upload Result */}
-                        {uploadResult && (
-                          <div className={`p-3 rounded-lg border ${
-                            uploadResult.success 
-                              ? 'bg-green-50 border-green-200' 
-                              : 'bg-red-50 border-red-200'
-                          }`}>
-                            <div className="flex items-center">
-                              {uploadResult.success ? (
-                                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                              ) : (
-                                <X className="h-4 w-4 mr-2 text-red-600" />
-                              )}
-                              <span className={`text-sm ${
-                                uploadResult.success ? 'text-green-700' : 'text-red-700'
-                              }`}>
-                                {uploadResult.message}
-                              </span>
-                            </div>
-                            {uploadResult.success && uploadResult.type && uploadResult.rowsProcessed && (
-                              <div className="mt-2 text-xs text-green-600">
-                                Type: {uploadResult.type} | Rows: {uploadResult.rowsProcessed}
+                        {uploadResults.length > 0 && (
+                          <div className="space-y-2">
+                            {uploadResults.map((res, idx) => (
+                              <div key={`${res.filename}-${idx}`} className={`p-3 rounded-lg border ${res.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                <div className="flex items-center">
+                                  {res.success ? (
+                                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                  ) : (
+                                    <X className="h-4 w-4 mr-2 text-red-600" />
+                                  )}
+                                  <span className={`text-sm ${res.success ? 'text-green-700' : 'text-red-700'}`}>
+                                    {res.filename}: {res.message}
+                                  </span>
+                                </div>
+                                {res.success && res.type && (
+                                  <div className="mt-2 text-xs text-green-600">
+                                    Detected: {res.type} {typeof res.rowsProcessed === 'number' ? `• Rows: ${res.rowsProcessed}` : ''}
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            ))}
                           </div>
                         )}
                       </div>
@@ -626,8 +646,7 @@ export default function ScorecardPage() {
                     Security issues currently impacting your scorecard rating
                     {filteredIssues.length !== scorecard.totalIssueCount && (
                       <span className={cn(
-                        "ml-2 text-sm",
-                        isDark ? "text-blue-400" : "text-blue-600"
+                        "ml-2 text-sm text-primary"
                       )}>
                         (Showing {filteredIssues.length} of {scorecard.totalIssueCount} total issues)
                       </span>
@@ -678,12 +697,24 @@ export default function ScorecardPage() {
                         ))}
                       </SelectContent>
                     </Select>
+
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SEVERITY">Severity (Critical → Low)</SelectItem>
+                        <SelectItem value="IMPACT">Impact score (desc)</SelectItem>
+                        <SelectItem value="COUNT">Total issues (desc)</SelectItem>
+                        <SelectItem value="DATE">Opened date (newest)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Issues List */}
                   <div className="space-y-4">
-                    {filteredIssues.length > 0 ? (
-                      filteredIssues.map((issue) => (
+                    {sortedIssues.length > 0 ? (
+                      sortedIssues.map((issue) => (
                         <div key={issue.id} className="space-y-2">
                           <div 
                             className={cn(
@@ -697,9 +728,9 @@ export default function ScorecardPage() {
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center space-x-3 mb-2">
-                                  <Badge className={getSeverityColor(issue.severity)}>
-                                    {issue.severity}
-                                  </Badge>
+                                        <Badge className={getSeverityBadge(issue.severity)}>
+                                          {issue.severity}
+                                        </Badge>
                                   <Badge variant="outline">
                                     {issue.category}
                                   </Badge>
@@ -709,7 +740,7 @@ export default function ScorecardPage() {
                                   {issue.count > 1 && (
                                     <Badge variant="outline" className={cn(
                                       "text-xs",
-                                      isDark ? "bg-blue-900 text-blue-300 border-blue-700" : "bg-blue-100 text-blue-800 border-blue-200"
+                                      isDark ? "bg-primary/20 text-primary border-primary/30" : "bg-primary/15 text-primary border-primary/30"
                                     )}>
                                       {issue.count} issues
                                     </Badge>
@@ -808,9 +839,9 @@ export default function ScorecardPage() {
                                   <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                       <div className="flex items-center space-x-2 mb-1">
-                                        <Badge className={getSeverityColor(subIssue.severity)}>
-                                          {subIssue.severity}
-                                        </Badge>
+                                      <Badge className={getSeverityBadge(subIssue.severity)}>
+                                        {subIssue.severity}
+                                      </Badge>
                                       </div>
                                       <p className={cn(
                                         "mb-1",

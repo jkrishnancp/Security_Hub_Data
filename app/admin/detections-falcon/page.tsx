@@ -99,7 +99,7 @@ export default function AdminFalconDetectionsImport() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Falcon Detections Import</h1>
         <p className="text-muted-foreground mt-2">
-          Upload CrowdStrike CSV files to import Falcon detection data.
+          Upload Falcon Detections CSV for this page only.
         </p>
       </div>
 
@@ -120,10 +120,13 @@ export default function AdminFalconDetectionsImport() {
               onChange={handleFileChange}
               disabled={uploading}
             />
-            <p className="text-sm text-muted-foreground">
-              Upload a CrowdStrike CSV file containing detection data. Expected columns include: 
-              DetectDate_UTC_readable, Severity, Tactic, ProductType, Hostname, Filename, PatternDispositionDescription, etc.
-            </p>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p><span className="font-medium">File type:</span> Falcon Detections CSV</p>
+              <p><span className="font-medium">Filename:</span> Falcon_XXXX_YYYYMMDD.csv</p>
+              <p>
+                <span className="font-medium">Key fields:</span> DetectDate, Severity, Tactic/Technique, ProductType, Hostname, Filename, PatternDispositionDescription
+              </p>
+            </div>
           </div>
 
           {file && (
@@ -214,34 +217,25 @@ export default function AdminFalconDetectionsImport() {
         <CardContent>
           <div className="space-y-4 text-sm">
             <div>
-              <h4 className="font-medium mb-2">Expected Columns (case-insensitive):</h4>
+              <h4 className="font-medium mb-2">Required Columns (case-insensitive):</h4>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                <li><strong>DetectDate_UTC_readable</strong> - Detection timestamp</li>
+                <li><strong>DetectDate</strong> - Detection timestamp</li>
                 <li><strong>Severity</strong> - Critical, High, Medium, Low, Informational</li>
-                <li><strong>Tactic</strong> - MITRE ATT&CK tactic</li>
+                <li><strong>Tactic/Technique</strong> - MITRE ATT&CK tactic or technique</li>
                 <li><strong>ProductType</strong> - Product/service that detected</li>
                 <li><strong>Hostname</strong> - Affected hostname</li>
-                <li><strong>Filename</strong> - Affected filename (optional)</li>
+                <li><strong>Filename</strong> - Affected filename</li>
                 <li><strong>PatternDispositionDescription</strong> - Detection description</li>
-                <li><strong>false_positive</strong> - Mark as false positive (optional)</li>
               </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-medium mb-2">Additional Supported Columns:</h4>
-              <p className="text-muted-foreground">
-                The system will also import additional CrowdStrike fields like ComputerName, UserName, 
-                ProcessName, CommandLine, IOCType, IOCValue, Confidence, Technique, PolicyName, etc.
-              </p>
             </div>
 
             <div>
               <h4 className="font-medium mb-2">Notes:</h4>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Use filename pattern Falcon_XXXX_YYYYMMDD.csv</li>
+                <li>Data availability: imports are treated as up to today. Next import should include only new data from tomorrow onward (exclude duplicates for today).</li>
                 <li>All data is stamped with today's ingestion date</li>
-                <li>Full CSV rows are stored as JSON for audit purposes</li>
                 <li>False positives are automatically excluded from reports</li>
-                <li>Duplicate detection handling based on key fields</li>
               </ul>
             </div>
           </div>

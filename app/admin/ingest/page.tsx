@@ -288,48 +288,48 @@ This action cannot be undone. Recent data will be permanently removed from the d
               </CardDescription>
               
               {/* File Naming Requirements Alert */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 mt-4">
                 <div className="flex items-start">
-                  <Info className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+                  <Info className="h-5 w-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
-                    <h4 className="text-sm font-medium text-blue-800 mb-2">File Naming Requirements</h4>
-                    <p className="text-sm text-blue-700 mb-4">
+                    <h4 className="text-sm font-medium text-primary mb-2">File Naming Requirements</h4>
+                    <p className="text-sm text-primary mb-4">
                       All files must follow specific naming patterns that include the date in YYYYMMDD format.
                     </p>
                     
                     <div className="space-y-3 text-sm">
                       <div className="grid gap-3">
-                        <div className="bg-white rounded p-3 border border-blue-100">
-                          <p className="font-medium text-blue-800 mb-1">Vulnerability Reports (Tenable):</p>
-                          <p className="text-blue-700">Pattern: <code className="bg-blue-100 px-1 rounded">Tenable_XXXX_YYYYMMDD.csv</code></p>
+                        <div className="bg-white rounded p-3 border border-primary/20">
+                          <p className="font-medium text-primary mb-1">Vulnerability Reports (Tenable):</p>
+                          <p className="text-primary">Pattern: <code className="bg-primary/15 px-1 rounded">Tenable_XXXX_YYYYMMDD.csv</code></p>
                         </div>
                         
-                        <div className="bg-white rounded p-3 border border-blue-100">
-                          <p className="font-medium text-blue-800 mb-1">Falcon Detections:</p>
-                          <p className="text-blue-700">Pattern: <code className="bg-blue-100 px-1 rounded">Falcon_XXXX_YYYYMMDD.csv</code></p>
+                        <div className="bg-white rounded p-3 border border-primary/20">
+                          <p className="font-medium text-primary mb-1">Falcon Detections:</p>
+                          <p className="text-primary">Pattern: <code className="bg-primary/15 px-1 rounded">Falcon_XXXX_YYYYMMDD.csv</code></p>
                         </div>
                         
-                        <div className="bg-white rounded p-3 border border-blue-100">
-                          <p className="font-medium text-blue-800 mb-1">Secureworks Detection Alerts:</p>
-                          <p className="text-blue-700 mb-1">Pattern: <code className="bg-blue-100 px-1 rounded">Secureworks_XXXX_YYYYMMDD.csv</code></p>
-                          <p className="text-xs text-blue-600 mt-1">Expected columns: Created At, Title, Severity, Threat Score, Detector, Sensor Type, Domain, Combined Username, Source IP, Destination IP, Hostname, Investigations, Confidence, MITRE ATT&CK, Status, Status Reason, Tenant, Occurrence Count, Description</p>
+                        <div className="bg-white rounded p-3 border border-primary/20">
+                          <p className="font-medium text-primary mb-1">Secureworks Detection Alerts:</p>
+                          <p className="text-primary mb-1">Pattern: <code className="bg-primary/15 px-1 rounded">Secureworks_XXXX_YYYYMMDD.csv</code></p>
+                          <p className="text-xs text-primary mt-1">Expected columns: Created At, Title, Severity, Threat Score, Detector, Sensor Type, Domain, Combined Username, Source IP, Destination IP, Hostname, Investigations, Confidence, MITRE ATT&CK, Status, Status Reason, Tenant, Occurrence Count, Description</p>
                         </div>
                         
-                        <div className="bg-white rounded p-3 border border-blue-100">
-                          <p className="font-medium text-blue-800 mb-1">Phishing Reports:</p>
-                          <p className="text-blue-700">Pattern: <code className="bg-blue-100 px-1 rounded">Phishing_XXXX_YYYYMMDD.csv</code></p>
+                        <div className="bg-white rounded p-3 border border-primary/20">
+                          <p className="font-medium text-primary mb-1">Phishing Reports:</p>
+                          <p className="text-primary">Pattern: <code className="bg-primary/15 px-1 rounded">Phishing_XXXX_YYYYMMDD.csv</code></p>
                         </div>
 
-                        <div className="bg-white rounded p-3 border border-blue-100">
-                          <p className="font-medium text-blue-800 mb-1">AWS Security Hub Findings:</p>
-                          <p className="text-blue-700 mb-1">Pattern: <code className="bg-blue-100 px-1 rounded">AWS_Security_Hub_XXXX_YYYYMMDD.csv</code></p>
-                          <p className="text-xs text-blue-600 mt-1">Expected columns: ID, Title, Control Status, Severity, Failed checks, Unknown checks, Not available checks, Passed checks, Related requirements, Custom parameters</p>
+                        <div className="bg-white rounded p-3 border border-primary/20">
+                          <p className="font-medium text-primary mb-1">AWS Security Hub Findings:</p>
+                          <p className="text-primary mb-1">Pattern: <code className="bg-primary/15 px-1 rounded">AWS_Security_Hub_XXXX_YYYYMMDD.csv</code></p>
+                          <p className="text-xs text-primary mt-1">Expected columns: ID, Title, Control Status, Severity, Failed checks, Unknown checks, Not available checks, Passed checks, Related requirements, Custom parameters</p>
                         </div>
                         
-                        <div className="bg-white rounded p-3 border border-blue-100">
-                          <p className="font-medium text-blue-800 mb-1">Security Scorecard Files:</p>
-                          <p className="text-blue-700 mb-1">Scorecard Report: <code className="bg-blue-100 px-1 rounded">NETGEAR_Scorecard_Report_YYYYMMDD.csv</code></p>
-                          <p className="text-blue-700">Full Issues Report: <code className="bg-blue-100 px-1 rounded">NETGEAR_FullIssues_Report_YYYYMMDD.csv</code></p>
+                        <div className="bg-white rounded p-3 border border-primary/20">
+                          <p className="font-medium text-primary mb-1">Security Scorecard Files:</p>
+                          <p className="text-primary mb-1">Scorecard Report: <code className="bg-primary/15 px-1 rounded">NETGEAR_Scorecard_Report_YYYYMMDD.csv</code></p>
+                          <p className="text-primary">Full Issues Report: <code className="bg-primary/15 px-1 rounded">NETGEAR_FullIssues_Report_YYYYMMDD.csv</code></p>
                         </div>
                       </div>
                       
@@ -369,14 +369,14 @@ This action cannot be undone. Recent data will be permanently removed from the d
                 {...getRootProps()}
                 className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
                   isDragActive 
-                    ? 'border-blue-400 bg-blue-50' 
+                    ? 'border-primary/40 bg-primary/5' 
                     : 'border-gray-300 hover:border-gray-400'
                 } ${uploading ? 'pointer-events-none opacity-50' : ''}`}
               >
                 <input {...getInputProps()} />
                 <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 {isDragActive ? (
-                  <p className="text-blue-600 font-medium">Drop the file here</p>
+                  <p className="text-primary font-medium">Drop the file here</p>
                 ) : (
                   <>
                     <p className="text-gray-600 font-medium mb-2">
@@ -732,7 +732,7 @@ This action cannot be undone. Recent data will be permanently removed from the d
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-                    <Table className="h-5 w-5 text-blue-600" />
+                    <Table className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-medium">Vulnerability Reports</p>
                       <p className="text-sm text-gray-500">CSV/Excel with CVE data</p>
@@ -776,7 +776,7 @@ This action cannot be undone. Recent data will be permanently removed from the d
                     </div>
                   </div>
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded">
-                    <Table className="h-5 w-5 text-indigo-600" />
+                    <Table className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-medium">Issue Reports</p>
                       <p className="text-sm text-gray-500">Cross-cutting security issues</p>

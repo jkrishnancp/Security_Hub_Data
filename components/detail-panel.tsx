@@ -426,7 +426,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ isOpen, onClose, data, type, 
         <div className="grid grid-cols-1 gap-3">
           <div className="flex justify-between">
             <span className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-600")}>Control ID:</span>
-            <span className={cn("text-sm font-mono", isDark ? "text-blue-400" : "text-blue-600")}>
+            <span className={cn("text-sm font-mono", "text-primary")}>
               {data.controlId || '—'}
             </span>
           </div>

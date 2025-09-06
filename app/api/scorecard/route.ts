@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const selectedDate = searchParams.get('date');
 
-    // Check cache first
-    const cacheKey = `scorecard-${selectedDate || 'latest'}`;
+    // Check cache first (bump version to invalidate older cached results)
+    const cacheKey = `scorecard-v3-${selectedDate || 'latest'}`;
     const cached = scorecardCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return NextResponse.json(cached.data);
@@ -61,13 +61,21 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
+    // Determine the most recent relevant date: use the newer of rating date and latest issue date
+    const latestIssue = await prisma.scorecardIssueDetail.findMany({
+      orderBy: { reportDate: 'desc' },
+      take: 1
+    });
+    const latestIssueDate = latestIssue[0]?.reportDate ?? latestRating.reportDate;
+    const effectiveDate = latestIssueDate > latestRating.reportDate ? latestIssueDate : latestRating.reportDate;
+
     // Get detailed issues in one optimized query
     const issuesRaw = await prisma.scorecardIssueDetail.findMany({
       where: {
         reportDate: {
-          lte: latestRating.reportDate
+          lte: effectiveDate
         },
-        status: 'active',
+        // Do not filter by status; files use ACTIVE consistently
         issueTypeSeverity: {
           in: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] // Exclude INFO
         }

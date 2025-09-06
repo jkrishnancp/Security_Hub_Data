@@ -542,3 +542,39 @@ model RssItem {
 
   @@map("rss_items")
 }
+
+// Tool Metrics – Email Protection monthly aggregates
+model ToolMetricsEmail {
+  id                 String   @id @default(cuid())
+  periodMonth        DateTime // First day of the month (e.g., 2025-02-01)
+  periodQuarter      String   // e.g., "Q1 2025"
+  reportLabel        String?  // From filename (e.g., 022025)
+  inboundEmails      Float    @default(0)
+  blockedProofpoint  Float    @default(0)
+  blockedMS365       Float    @default(0)
+  deliveredEmails    Float    @default(0)
+  raw_json           String?  // Raw CSV row(s) if applicable
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([periodMonth])
+  @@map("tool_metrics_email")
+}
+
+// Tool Metrics – Perimeter Protection (placeholder for future fields)
+model ToolMetricsPerimeter {
+  id            String   @id @default(cuid())
+  periodMonth   DateTime
+  periodQuarter String
+  reportLabel   String?
+  // Generic fields for perimeter totals if provided in CSV
+  totalInbound  Float?   @default(0)
+  totalBlocked  Float?   @default(0)
+  delivered     Float?   @default(0)
+  raw_json      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([periodMonth])
+  @@map("tool_metrics_perimeter")
+}

@@ -36,22 +36,61 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { useTheme } from '@/components/theme-provider';
 import { cn } from '@/lib/utils';
 
-interface NavItem {
-  name: string;
+interface NavEntry {
+  label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: string[];
 }
 
-const navigation: NavItem[] = [
-  { name: `Open Items (${new Date().toISOString().slice(0, 10)})`, href: '/open-items', icon: CheckSquare, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
-  { name: 'RSS Feeds', href: '/rss-feeds', icon: Rss, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
-  { name: 'Threat Advisories', href: '/issues', icon: AlertTriangle, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
-  { name: 'Security Scorecard', href: '/scorecard', icon: Shield, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
-  { name: 'Detections — Falcon', href: '/detections/falcon', icon: Eye, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
-  { name: 'Detections — Secureworks', href: '/detections/secureworks', icon: Database, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
-  { name: 'Vulnerabilities', href: '/vulnerabilities', icon: FileText, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
-  { name: 'Detections — Cloud', href: '/detections/cloud', icon: Cloud, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+interface NavGroup {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavEntry[];
+}
+
+const groups: NavGroup[] = [
+  {
+    label: 'Open Items',
+    icon: CheckSquare,
+    items: [
+      { label: 'Open Items', href: '/open-items', icon: CheckSquare, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+    ],
+  },
+  {
+    label: 'Threat Advisory',
+    icon: AlertTriangle,
+    items: [
+      { label: 'RSS Feeds', href: '/rss-feeds', icon: Rss, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+      { label: 'Threat Advisory', href: '/issues', icon: AlertTriangle, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+    ],
+  },
+  {
+    label: 'Detections',
+    icon: Eye,
+    items: [
+      { label: 'Detections — Falcon', href: '/detections/falcon', icon: Eye, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+      { label: 'Detections — Secureworks', href: '/detections/secureworks', icon: Database, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+    ],
+  },
+  {
+    label: 'Vulnerabilities',
+    icon: FileText,
+    items: [
+      { label: 'Cloud Security', href: '/detections/cloud', icon: Cloud, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+      { label: 'Vulnerabilities', href: '/vulnerabilities', icon: FileText, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+      { label: 'Security Scorecard', href: '/scorecard', icon: Shield, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+    ],
+  },
+  {
+    label: 'Tool Metrics',
+    icon: BarChart3,
+    items: [
+      { label: 'TOOL METRICS – PERIMETER & END POINT PROTECTION', href: '/tool-metrics/perimeter-endpoint-protection', icon: BarChart3, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+      { label: 'TOOL METRICS – XDR (SECUREWORKS)', href: '/tool-metrics/xdr-secureworks', icon: BarChart3, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+      { label: 'TOOL METRICS – END POINT PROTECTION (CROWDSTRIKE)', href: '/tool-metrics/endpoint-protection-crowdstrike', icon: BarChart3, roles: ['ADMIN', 'ANALYST', 'VIEWER', 'BU_LEAD'] },
+    ],
+  },
 ];
 
 export default function NavBar() {
@@ -65,30 +104,28 @@ export default function NavBar() {
   }
 
   const userRole = session.user.role;
-  const filteredNavigation = navigation.filter(item => item.roles.includes(userRole));
+  const filteredGroups: NavGroup[] = groups.map(g => ({
+    ...g,
+    items: g.items.filter(i => i.roles.includes(userRole))
+  })).filter(g => g.items.length > 0);
   const isDark = actualTheme === 'dark';
-
-  // Split navigation for responsive design
-  const primaryNavigation = filteredNavigation.slice(0, 3); // First 3 items
-  const secondaryNavigation = filteredNavigation.slice(3); // Remaining items
+  const isGroupActive = (group: NavGroup) => group.items.some(i => pathname.startsWith(i.href));
 
   return (
     <>
       <div className={cn(
         "border-b sticky top-0 z-40 backdrop-blur-sm transition-colors duration-200",
-        isDark 
-          ? "bg-gray-900/95 border-gray-800" 
-          : "bg-white/95 border-gray-200"
+        "bg-background/95 border-border"
       )}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex items-center justify-between h-16">
             <div className="flex">
               {/* Logo */}
               <div className="flex-shrink-0 flex items-center">
                 <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
                   <Shield className={cn(
                     "h-8 w-8",
-                    isDark ? "text-blue-400" : "text-blue-600"
+                    "text-primary"
                   )} />
                   <span className={cn(
                     "ml-2 text-xl font-bold tracking-tight",
@@ -100,115 +137,102 @@ export default function NavBar() {
               </div>
 
               {/* Desktop Navigation */}
-              <div className="hidden lg:ml-6 lg:flex lg:space-x-1">
-                {primaryNavigation.map((item) => {
-                  const Icon = item.icon;
+              <div className="hidden lg:ml-6 lg:flex lg:space-x-1 mt-1">
+                {filteredGroups.map((group) => {
+                  const GroupIcon = group.icon;
+                  const active = isGroupActive(group);
+                  const triggerClasses = cn(
+                    'inline-flex items-center px-3 py-2 font-medium text-sm rounded-md transition-colors',
+                    active
+                      ? (isDark ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary')
+                      : (isDark ? 'text-gray-300 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50')
+                  );
+
+                  if (group.items.length === 1) {
+                    const only = group.items[0];
+                    return (
+                      <Button key={group.label} asChild variant="ghost" size="sm" className={triggerClasses}>
+                        <Link href={only.href}>
+                          <GroupIcon className="h-4 w-4 mr-2" />
+                          {group.label}
+                        </Link>
+                      </Button>
+                    );
+                  }
+
                   return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        "inline-flex items-center px-3 py-2 border-b-2 font-medium text-sm transition-colors duration-200",
-                        pathname === item.href
-                          ? isDark 
-                            ? 'border-blue-400 text-blue-400' 
-                            : 'border-blue-500 text-blue-600'
-                          : isDark
-                            ? 'border-transparent text-gray-300 hover:border-gray-600 hover:text-white'
-                            : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                      )}
-                    >
-                      <Icon className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{item.name}</span>
-                    </Link>
+                    <DropdownMenu key={group.label}>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className={triggerClasses}>
+                          <GroupIcon className="h-4 w-4 mr-2" />
+                          {group.label}
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                        {group.items.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <DropdownMenuItem key={item.label} asChild>
+                              <Link href={item.href} className="flex items-center">
+                                <Icon className="h-4 w-4 mr-2" />
+                                {item.label}
+                              </Link>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   );
                 })}
-                
-                {/* More Menu for additional items */}
-                {secondaryNavigation.length > 0 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className={cn(
-                          "inline-flex items-center px-3 py-2 font-medium text-sm h-auto",
-                          isDark ? "text-gray-300 hover:text-white" : "text-gray-500 hover:text-gray-700"
-                        )}
-                      >
-                        More
-                        <ChevronDown className="ml-1 h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48">
-                      {secondaryNavigation.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <DropdownMenuItem key={item.name} asChild>
-                            <Link href={item.href} className="flex items-center">
-                              <Icon className="h-4 w-4 mr-2" />
-                              {item.name}
-                            </Link>
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
               </div>
 
               {/* Tablet Navigation - Condensed */}
-              <div className="hidden sm:flex lg:hidden sm:ml-6 sm:space-x-2">
-                {primaryNavigation.slice(0, 2).map((item) => {
-                  const Icon = item.icon;
+              <div className="hidden sm:flex lg:hidden sm:ml-6 sm:space-x-2 mt-1">
+                {filteredGroups.map((group) => {
+                  const GroupIcon = group.icon;
+                  const active = isGroupActive(group);
+                  const triggerClasses = cn(
+                    'inline-flex items-center px-2 py-2 font-medium text-sm rounded-md transition-colors',
+                    active
+                      ? (isDark ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary')
+                      : (isDark ? 'text-gray-300 hover:text-white hover:bg-gray-800' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50')
+                  );
+
+                  if (group.items.length === 1) {
+                    const only = group.items[0];
+                    return (
+                      <Button key={group.label} asChild variant="ghost" size="sm" className={triggerClasses} title={group.label}>
+                        <Link href={only.href}>
+                          <GroupIcon className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    );
+                  }
+
                   return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        "inline-flex items-center px-2 py-2 border-b-2 font-medium text-sm transition-colors",
-                        pathname === item.href
-                          ? isDark ? 'border-blue-400 text-blue-400' : 'border-blue-500 text-blue-600'
-                          : isDark ? 'border-transparent text-gray-300 hover:text-white' : 'border-transparent text-gray-500 hover:text-gray-700'
-                      )}
-                      title={item.name}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="ml-1 hidden md:inline truncate max-w-24">
-                        {item.name.split(' ')[0]}
-                      </span>
-                    </Link>
+                    <DropdownMenu key={group.label}>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className={triggerClasses} title={group.label}>
+                          <GroupIcon className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        {group.items.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <DropdownMenuItem key={item.label} asChild>
+                              <Link href={item.href} className="flex items-center">
+                                <Icon className="h-4 w-4 mr-2" />
+                                {item.label}
+                              </Link>
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   );
                 })}
-                
-                {/* Dropdown for remaining items on tablet */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className={cn(
-                        "px-2 py-2 h-auto",
-                        isDark ? "text-gray-300" : "text-gray-500"
-                      )}
-                    >
-                      <Menu className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    {filteredNavigation.slice(2).map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <DropdownMenuItem key={item.name} asChild>
-                          <Link href={item.href} className="flex items-center">
-                            <Icon className="h-4 w-4 mr-2" />
-                            {item.name}
-                          </Link>
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             </div>
 
@@ -313,29 +337,33 @@ export default function NavBar() {
             isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"
           )}>
             <div className="pt-2 pb-3 space-y-1 px-2">
-              {filteredNavigation.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors",
-                      pathname === item.href
-                        ? isDark
-                          ? 'bg-blue-900 text-blue-200 border-blue-400'
-                          : 'bg-blue-50 text-blue-700 border-blue-500'
-                        : isDark
-                          ? 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                    )}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Icon className="h-5 w-5 mr-3 flex-shrink-0" />
-                    <span className="truncate">{item.name}</span>
-                  </Link>
-                );
-              })}
+              {filteredGroups.map((group) => (
+                <div key={group.label} className="mb-2">
+                  <div className={cn('px-3 py-1 text-xs font-semibold uppercase tracking-wide', isDark ? 'text-gray-400' : 'text-gray-500')}>
+                    {group.label}
+                  </div>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = pathname.startsWith(item.href);
+                    return (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        className={cn(
+                          'flex items-center px-3 py-2 rounded-md text-base font-medium transition-colors',
+                          active
+                            ? (isDark ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary')
+                            : (isDark ? 'text-gray-300 hover:bg-gray-800 hover:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800')
+                        )}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
             
             {/* Mobile User Section */}

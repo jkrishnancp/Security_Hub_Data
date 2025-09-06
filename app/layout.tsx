@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider defaultTheme="system" storageKey="security-data-hub-theme">
+        <ThemeProvider defaultTheme="dark" storageKey="security-data-hub-theme">
           <SessionProvider>
             <OnboardingGuard>
               {children}

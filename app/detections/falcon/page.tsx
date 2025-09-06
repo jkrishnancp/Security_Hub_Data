@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from '@/lib/utils';
 import { METALLIC_COLORS, getSeverityColor, getSeverityBadgeClass } from '@/lib/theme-config';
 import DetailPanel from '@/components/detail-panel';
+import ImportDataDialog from '@/components/import-data-dialog';
 import {
   BarChart,
   Bar,
@@ -325,7 +326,7 @@ export default function FalconDetections() {
               <div className="text-center">
                 <RefreshCw className={cn(
                   "h-8 w-8 animate-spin mx-auto mb-4",
-                  isDark ? "text-blue-400" : "text-blue-600"
+                  "text-primary"
                 )} />
                 <p className={cn(
                   isDark ? "text-gray-400" : "text-gray-500"
@@ -360,11 +361,12 @@ export default function FalconDetections() {
                 CrowdStrike Falcon endpoint detections and threat analytics
               </p>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 items-center">
               <Button onClick={fetchData} variant="outline" disabled={loading}>
                 <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
                 Refresh
               </Button>
+              <ImportDataDialog highlight={['falcon']} allowed={['falcon']} />
             </div>
           </div>
 

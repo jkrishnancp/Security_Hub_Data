@@ -148,7 +148,7 @@ export default function DashboardPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex items-center justify-center min-h-96">
               <div className="text-center">
-                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
                 <p className="text-gray-500">Loading dashboard...</p>
               </div>
             </div>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
               <p className="text-gray-500 mt-1">
                 Welcome back, {session?.user.email} 
                 {session?.user.businessUnit && (
-                  <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                  <span className="ml-2 text-sm bg-primary/15 text-primary px-2 py-1 rounded">
                     {session.user.businessUnit}
                   </span>
                 )}
@@ -338,7 +338,7 @@ export default function DashboardPage() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center">
-                      <FileText className="h-8 w-8 text-blue-500" />
+                      <FileText className="h-8 w-8 text-primary" />
                       <div className="ml-4">
                         <p className="text-sm font-medium text-gray-500">Total Issues</p>
                         <p className="text-2xl font-bold text-gray-900">
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                                 {item.rssFeed.name}
                               </span>
                               {!item.read && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <div className="w-2 h-2 bg-primary rounded-full"></div>
                               )}
                             </div>
                             <h4 className="font-medium text-gray-900 mb-1 line-clamp-2">

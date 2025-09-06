@@ -28,6 +28,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { format, subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { METALLIC_COLORS } from '@/lib/theme-config';
+import ImportDataDialog from '@/components/import-data-dialog';
 
 // Chart colors using metallic theme
 const CHART_COLORS = {
@@ -297,7 +298,7 @@ export default function ThreatAdvisoriesPage() {
               <div className="text-center">
                 <RefreshCw className={cn(
                   "h-8 w-8 animate-spin mx-auto mb-4",
-                  isDark ? "text-blue-400" : "text-blue-600"
+                  "text-primary"
                 )} />
                 <p className={cn(
                   isDark ? "text-gray-400" : "text-gray-500"
@@ -332,15 +333,12 @@ export default function ThreatAdvisoriesPage() {
                 Monitor and track security threat advisories affecting your environment
               </p>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 items-center">
               <Button onClick={loadThreatAdvisoryData} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              <Button>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
+              <ImportDataDialog highlight={['threat_advisory']} allowed={['threat_advisory']} />
             </div>
           </div>
 
@@ -350,7 +348,7 @@ export default function ThreatAdvisoriesPage() {
               <CardTitle className="flex items-center">
                 <Filter className={cn(
                   "h-5 w-5 mr-2",
-                  isDark ? "text-blue-400" : "text-blue-500"
+                  "text-primary"
                 )} />
                 Filters
               </CardTitle>
@@ -455,11 +453,11 @@ export default function ThreatAdvisoriesPage() {
                 <div className="flex items-center">
                   <div className={cn(
                     "p-2 rounded-lg",
-                    isDark ? "bg-blue-900/30" : "bg-blue-100"
+                    isDark ? "bg-primary/20" : "bg-primary/15"
                   )}>
                     <AlertTriangle className={cn(
                       "h-6 w-6",
-                      isDark ? "text-blue-400" : "text-blue-600"
+                      "text-primary"
                     )} />
                   </div>
                   <div className="ml-4">
@@ -751,7 +749,7 @@ export default function ThreatAdvisoriesPage() {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
+                          <div className="flex items-center space-x-2 mb-1 flex-wrap">
                             <Badge className={getSeverityColor(advisory.severity)}>
                               {advisory.severity}
                             </Badge>
@@ -765,17 +763,25 @@ export default function ThreatAdvisoriesPage() {
                               {advisory.source}
                             </Badge>
                           </div>
-                          <h3 className={cn(
-                            "text-sm font-medium mb-2",
-                            isDark ? "text-white" : "text-gray-900"
-                          )}>
-                            {advisory.threatAdvisoryName}
-                          </h3>
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className={cn(
+                              "text-sm font-semibold pr-3 truncate",
+                              isDark ? "text-white" : "text-gray-900"
+                            )} title={advisory.threatAdvisoryName}>
+                              {advisory.threatAdvisoryName}
+                            </h3>
+                            <div className={cn(
+                              "text-xs whitespace-nowrap ml-3",
+                              isDark ? "text-gray-400" : "text-gray-500"
+                            )}>
+                              Notified: {new Date(advisory.notifiedDate).toLocaleDateString()}
+                            </div>
+                          </div>
                           {advisory.remarks && (
                             <p className={cn(
-                              "text-sm mb-2",
+                              "text-sm mb-1 truncate",
                               isDark ? "text-gray-300" : "text-gray-600"
-                            )}>{advisory.remarks}</p>
+                            )} title={advisory.remarks}>{advisory.remarks}</p>
                           )}
                           <div className={cn(
                             "flex items-center space-x-4 text-xs",
@@ -784,9 +790,6 @@ export default function ThreatAdvisoriesPage() {
                             <span className="flex items-center">
                               <Clock className="h-3 w-3 mr-1" />
                               Released: {new Date(advisory.advisoryReleasedDate).toLocaleDateString()}
-                            </span>
-                            <span>
-                              Notified: {new Date(advisory.notifiedDate).toLocaleDateString()}
                             </span>
                             {advisory.etaForFix !== 'N/A' && (
                               <span>

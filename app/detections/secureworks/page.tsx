@@ -8,6 +8,7 @@ import NavBar from '@/components/nav-bar';
 import { Filter, RefreshCw, ArrowUpDown, Eye, BarChart3, Shield, Clock, TrendingUp, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import ImportDataDialog from '@/components/import-data-dialog';
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -388,7 +389,7 @@ export default function SecureworksDetections() {
               <div className="text-center">
                 <RefreshCw className={cn(
                   "h-8 w-8 animate-spin mx-auto mb-4",
-                  isDark ? "text-blue-400" : "text-blue-600"
+                  "text-primary"
                 )} />
                 <p className={cn(
                   isDark ? "text-gray-400" : "text-gray-500"
@@ -428,6 +429,7 @@ export default function SecureworksDetections() {
                 <RefreshCw className={cn("h-4 w-4 mr-2", (loading || chartLoading) && "animate-spin")} />
                 Refresh
               </Button>
+              <ImportDataDialog highlight={['secureworks']} allowed={['secureworks']} />
             </div>
           </div>
 

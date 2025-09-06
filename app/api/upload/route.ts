@@ -40,6 +40,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Extra authorization: Scorecard imports are admin-only
+    if (['scorecard-csv', 'scorecard-report', 'scorecard-pdf'].includes(filenameValidation.source || '') && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Only ADMIN users may import SecurityScorecard files.' }, { status: 403 });
+    }
+
     // Extract date from filename
     const reportDate = extractDateFromFilename(file.name) || new Date();
 
@@ -160,18 +165,57 @@ async function generateChecksum(file: File): Promise<string> {
 
 async function processSecurityScorecardIssuesCSV(file: File, reportDate: Date, ingestionLogId: string): Promise<number> {
   const text = await file.text();
-  const lines = text.split('\n').filter(line => line.trim());
+  // Use a quote-aware line splitter to support embedded newlines in fields
+  const lines = splitCSVLines(text).filter(line => line.trim());
   
   if (lines.length < 2) {
     throw new Error('CSV file must contain at least a header row and one data row. Please check that your file has the proper CSV format.');
   }
 
   const headers = lines[0].split(',').map(h => h.trim());
-  console.log('CSV Headers found:', headers.slice(0, 5)); // Log first 5 headers
+  console.log('CSV Headers found (first 10):', headers.slice(0, 10));
+
+  // Build a case-insensitive header index map with basic normalization
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const headerIndex: Record<string, number> = {};
+  headers.forEach((h, i) => {
+    headerIndex[norm(h)] = i;
+  });
+
+  const findIdx = (candidates: string[], fallback: number) => {
+    for (const c of candidates) {
+      const idx = headerIndex[norm(c)];
+      if (typeof idx === 'number') return idx;
+    }
+    return fallback;
+  };
+
+  // Resolve key indices with sensible fallbacks to maintain backward compatibility
+  const idx = {
+    issueId: findIdx(['issue id', 'id'], 0),
+    factorName: findIdx(['factor name', 'factor', 'category'], 1),
+    issueTypeTitle: findIdx(['issue type title', 'title', 'issue title'], 2),
+    issueTypeCode: findIdx(['issue type code', 'code'], 3),
+    severity: findIdx(['severity', 'issue type severity'], 4),
+    status: findIdx(['status', 'issue status'], 13),
+    issueTypeScoreImpact: findIdx(['issue type score impact', 'score impact', 'impact score'], 42),
+    firstSeen: findIdx(['first seen'], 6),
+    lastSeen: findIdx(['last seen'], 7),
+    ipAddresses: findIdx(['ip addresses', 'ip address', 'ip'], 8),
+    hostname: findIdx(['hostname'], 9),
+    subdomain: findIdx(['subdomain'], 10),
+    target: findIdx(['target', 'url'], 11),
+    ports: findIdx(['ports', 'port'], 12),
+    cveId: findIdx(['cve id', 'cve'], 14),
+    description: findIdx(['description', 'issue description'], 15),
+    initialUrl: findIdx(['initial url'], 35),
+    finalUrl: findIdx(['final url'], 36),
+  };
   
   let processedCount = 0;
   
   // Process each data row (skip header)
+  let skippedShortRows = 0;
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
@@ -179,25 +223,31 @@ async function processSecurityScorecardIssuesCSV(file: File, reportDate: Date, i
     try {
       // Parse CSV row - handle quoted fields properly
       const values = parseCSVRow(line);
-      if (values.length < headers.length) continue;
+      // Pad rows shorter than header count to avoid dropping valid rows
+      if (values.length < headers.length) {
+        const missing = headers.length - values.length;
+        for (let k = 0; k < missing; k++) values.push('');
+        skippedShortRows++;
+      }
       
       // Create or update detailed scorecard issue record
       const issueData = {
-        factorName: values[1] || '',
-        issueTypeTitle: values[2] || '',
-        issueTypeCode: values[3] || '',
-        issueTypeSeverity: mapSeverity(values[4] || 'INFO') as any,
+        factorName: values[idx.factorName] || '',
+        issueTypeTitle: values[idx.issueTypeTitle] || '',
+        issueTypeCode: values[idx.issueTypeCode] || '',
+        issueTypeSeverity: mapSeverity(values[idx.severity] || 'INFO') as any,
         issueRecommendation: values[5] || null,
-        firstSeen: parseDate(values[6]),
-        lastSeen: parseDate(values[7]),
-        ipAddresses: values[8] || null,
-        hostname: values[9] || null,
-        subdomain: values[10] || null,
-        target: values[11] || null,
-        ports: values[12] || null,
-        status: values[13] || 'active',
-        cveId: values[14] || null,
-        description: values[15] || null,
+        firstSeen: parseDate(values[idx.firstSeen]),
+        lastSeen: parseDate(values[idx.lastSeen]),
+        ipAddresses: values[idx.ipAddresses] || null,
+        hostname: values[idx.hostname] || null,
+        subdomain: values[idx.subdomain] || null,
+        target: values[idx.target] || null,
+        ports: values[idx.ports] || null,
+        // Normalize status to lowercase for consistency
+        status: values[idx.status]?.trim().toLowerCase() || 'active',
+        cveId: values[idx.cveId] || null,
+        description: values[idx.description] || null,
         timeSincePublished: values[16] || null,
         timeOpenSincePublished: values[17] || null,
         cookieName: values[18] || null,
@@ -217,22 +267,22 @@ async function processSecurityScorecardIssuesCSV(file: File, reportDate: Date, i
         malwareType: values[32] || null,
         detectionMethod: values[33] || null,
         label: values[34] || null,
-        initialUrl: values[35] || null,
-        finalUrl: values[36] || null,
+        initialUrl: values[idx.initialUrl] || null,
+        finalUrl: values[idx.finalUrl] || null,
         requestChain: values[37] || null,
         headers: values[38] || null,
         analysis: values[39] || null,
         percentSimilarCompanies: parseFloat(values[40] || '0') || null,
         averageFindings: parseFloat(values[41] || '0') || null,
-        issueTypeScoreImpact: parseFloat(values[42] || '0') || 0,
+        issueTypeScoreImpact: parseFloat(values[idx.issueTypeScoreImpact] || '0') || 0,
         reportDate: reportDate,
       };
 
       await prisma.scorecardIssueDetail.upsert({
-        where: { issueId: values[0] || `unknown_${i}` },
+        where: { issueId: values[idx.issueId] || `unknown_${i}` },
         update: issueData,
         create: {
-          issueId: values[0] || `unknown_${i}`,
+          issueId: values[idx.issueId] || `unknown_${i}`,
           ...issueData,
         }
       });
@@ -251,6 +301,9 @@ async function processSecurityScorecardIssuesCSV(file: File, reportDate: Date, i
   }
 
   console.log(`Successfully processed ${processedCount} security scorecard issues`);
+  if (skippedShortRows > 0) {
+    console.log(`Note: padded ${skippedShortRows} rows with fewer columns than headers (likely due to embedded newlines or trailing empties)`);
+  }
   return processedCount;
 }
 
@@ -283,6 +336,29 @@ function parseCSVRow(line: string): string[] {
   
   result.push(current.trim().replace(/^"|"$/g, ''));
   return result;
+}
+
+// Split CSV text into logical records, respecting quoted newlines
+function splitCSVLines(text: string): string[] {
+  const lines: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"' && (i === 0 || text[i - 1] !== '\\')) {
+      inQuotes = !inQuotes;
+    }
+    if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (current.length > 0) {
+        lines.push(current);
+        current = '';
+      }
+      continue;
+    }
+    current += ch;
+  }
+  if (current.length > 0) lines.push(current);
+  return lines;
 }
 
 function parseDate(dateStr: string): Date | null {

@@ -56,7 +56,7 @@ interface User {
 
 const roleColors = {
   'ADMIN': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
-  'ANALYST': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', 
+  'ANALYST': 'bg-primary/15 text-primary dark:bg-primary/20 dark:text-primary', 
   'VIEWER': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
   'BU_LEAD': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300'
 };

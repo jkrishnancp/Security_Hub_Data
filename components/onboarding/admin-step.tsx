@@ -88,7 +88,7 @@ export default function AdminStep({ data, companyDomain, onUpdate, onNext, onBac
     if (/\W/.test(password)) score++;
     
     if (score === 4) return { score: 4, label: "Strong", color: "text-green-500" };
-    if (score === 3) return { score: 3, label: "Good", color: "text-blue-500" };
+    if (score === 3) return { score: 3, label: "Good", color: "text-primary" };
     if (score === 2) return { score: 2, label: "Fair", color: "text-yellow-500" };
     return { score: 1, label: "Weak", color: "text-red-500" };
   };
@@ -102,11 +102,11 @@ export default function AdminStep({ data, companyDomain, onUpdate, onNext, onBac
         <div className="flex items-center justify-center mb-6">
           <div className={cn(
             "p-4 rounded-full",
-            isDark ? "bg-blue-900/20" : "bg-blue-50"
+            isDark ? "bg-primary/20" : "bg-primary/10"
           )}>
             <Shield className={cn(
               "h-12 w-12",
-              isDark ? "text-blue-400" : "text-blue-600"
+              "text-primary"
             )} />
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function AdminStep({ data, companyDomain, onUpdate, onNext, onBac
                       "h-full transition-all duration-300",
                       passwordStrength.score === 1 && "w-1/4 bg-red-500",
                       passwordStrength.score === 2 && "w-2/4 bg-yellow-500",
-                      passwordStrength.score === 3 && "w-3/4 bg-blue-500",
+                      passwordStrength.score === 3 && "w-3/4 bg-primary",
                       passwordStrength.score === 4 && "w-full bg-green-500"
                     )}
                   />

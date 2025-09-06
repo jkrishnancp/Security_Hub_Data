@@ -42,11 +42,11 @@ export default function WelcomeStep({ onNext, isDark }: WelcomeStepProps) {
         <div className="flex items-center justify-center mb-6">
           <div className={cn(
             "p-4 rounded-full",
-            isDark ? "bg-blue-900/20" : "bg-blue-50"
+            isDark ? "bg-primary/20" : "bg-primary/10"
           )}>
             <Shield className={cn(
               "h-12 w-12",
-              isDark ? "text-blue-400" : "text-blue-600"
+              "text-primary"
             )} />
           </div>
         </div>
@@ -70,14 +70,14 @@ export default function WelcomeStep({ onNext, isDark }: WelcomeStepProps) {
           <Card key={index} className={cn(
             "border-2 transition-all duration-200",
             isDark 
-              ? "bg-gray-800 border-gray-700 hover:border-blue-500/50" 
-              : "bg-white border-gray-200 hover:border-blue-300"
+              ? "bg-card border-border hover:border-primary/50" 
+              : "bg-card border-border hover:border-primary/30"
           )}>
             <CardHeader>
               <div className="flex items-center gap-3">
                 <feature.icon className={cn(
                   "h-6 w-6",
-                  isDark ? "text-blue-400" : "text-blue-600"
+                  "text-primary"
                 )} />
                 <CardTitle className={cn(
                   "text-lg",
@@ -98,18 +98,18 @@ export default function WelcomeStep({ onNext, isDark }: WelcomeStepProps) {
 
       {/* Setup Info */}
       <Card className={cn(
-        "border-2",
-        isDark ? "bg-gray-800 border-gray-700" : "bg-blue-50 border-blue-200"
+        "border-2 bg-card border-border",
+        isDark ? undefined : undefined
       )}>
         <CardContent className="pt-6">
           <div className="flex items-start gap-4">
             <div className={cn(
               "p-2 rounded-full mt-1",
-              isDark ? "bg-blue-900/20" : "bg-blue-100"
+              isDark ? "bg-primary/20" : "bg-primary/15"
             )}>
               <Building className={cn(
                 "h-5 w-5",
-                isDark ? "text-blue-400" : "text-blue-600"
+                "text-primary"
               )} />
             </div>
             <div className="flex-1">

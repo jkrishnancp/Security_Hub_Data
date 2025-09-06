@@ -35,9 +35,9 @@ export default function Home() {
 
   if (status === 'loading' || (isSetup === null && !session)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Shield className="h-12 w-12 animate-pulse mx-auto mb-4 text-blue-600" />
+          <Shield className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
           <p className="text-gray-500">Loading...</p>
         </div>
       </div>
@@ -52,7 +52,7 @@ export default function Home() {
           {/* Welcome Section */}
           <div className="text-center mb-12">
             <div className="flex justify-center items-center mb-6">
-              <Shield className="h-16 w-16 text-blue-600 mr-4" />
+              <Shield className="h-16 w-16 text-primary mr-4" />
               <div>
                 <h1 className="text-4xl font-bold text-gray-900">Security DataHub</h1>
                 <p className="text-lg text-gray-600 mt-2">
@@ -78,12 +78,12 @@ export default function Home() {
           {/* Quick Actions Grid */}
           <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Quick Access</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            <a href="/open-items" className="block p-6 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+            <a href="/open-items" className="block p-6 bg-primary/10 border-2 border-primary/30 rounded-lg hover:bg-primary/15 transition-colors">
               <div className="flex items-center mb-3">
-                <FileText className="h-6 w-6 text-blue-600 mr-3" />
-                <h3 className="text-lg font-semibold text-blue-800">Open Items</h3>
+                <FileText className="h-6 w-6 text-primary mr-3" />
+                <h3 className="text-lg font-semibold text-primary">Open Items</h3>
               </div>
-              <p className="text-sm text-blue-700 opacity-80">Track and manage current work items and tasks</p>
+              <p className="text-sm text-primary opacity-80">Track and manage current work items and tasks</p>
             </a>
 
             <a href="/issues" className="block p-6 bg-red-50 border-2 border-red-200 rounded-lg hover:bg-red-100 transition-colors">
@@ -102,12 +102,12 @@ export default function Home() {
               <p className="text-sm text-green-700 opacity-80">View security posture and metrics</p>
             </a>
 
-            <a href="/dashboard" className="block p-6 bg-indigo-50 border-2 border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
+            <a href="/dashboard" className="block p-6 bg-primary/10 border-2 border-primary/30 rounded-lg hover:bg-primary/15 transition-colors">
               <div className="flex items-center mb-3">
-                <BarChart className="h-6 w-6 text-indigo-600 mr-3" />
-                <h3 className="text-lg font-semibold text-indigo-800">Analytics Dashboard</h3>
+                <BarChart className="h-6 w-6 text-primary mr-3" />
+                <h3 className="text-lg font-semibold text-primary">Analytics Dashboard</h3>
               </div>
-              <p className="text-sm text-indigo-700 opacity-80">Security metrics and reporting</p>
+              <p className="text-sm text-primary opacity-80">Security metrics and reporting</p>
             </a>
 
             <a href="/admin/activity" className="block p-6 bg-purple-50 border-2 border-purple-200 rounded-lg hover:bg-purple-100 transition-colors">
@@ -150,7 +150,7 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
-            <Shield className="h-16 w-16 text-blue-600" />
+              <Shield className="h-16 w-16 text-primary" />
           </div>
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
             Security DataHub + Scorecard
@@ -175,7 +175,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <Card className="border-0 shadow-lg">
             <CardContent className="p-8 text-center">
-              <BarChart className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <BarChart className="h-12 w-12 text-primary mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-3">Real-time Scorecard</h3>
               <p className="text-gray-600">
                 Automated security scoring with weighted categories, trend analysis, 
@@ -226,8 +226,8 @@ export default function Home() {
               <p className="text-sm text-gray-500">EDR alerts & tactics</p>
             </div>
             <div className="p-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <BarChart className="h-8 w-8 text-blue-600" />
+              <div className="w-16 h-16 bg-primary/15 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <BarChart className="h-8 w-8 text-primary" />
               </div>
               <p className="font-medium">AWS Security Hub</p>
               <p className="text-sm text-gray-500">Cloud compliance</p>

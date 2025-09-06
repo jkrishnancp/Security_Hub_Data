@@ -38,6 +38,7 @@ import {
   getStatusBadgeClass 
 } from '@/lib/theme-config';
 import { cn } from '@/lib/utils';
+import ImportDataDialog from '@/components/import-data-dialog';
 
 interface OpenItem {
   id: string;
@@ -457,8 +458,9 @@ export default function OpenItemsPage() {
       )}>
         <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className={cn(
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <h1 className={cn(
               "text-4xl font-bold tracking-tight mb-2",
               isDark ? "text-white" : "text-gray-900"
             )}>
@@ -470,6 +472,10 @@ export default function OpenItemsPage() {
             )}>
               Track and manage security-related action items and tasks
             </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <ImportDataDialog highlight={['open_items']} allowed={['open_items']} />
+            </div>
           </div>
 
           {/* Search Bar */}
@@ -581,22 +587,7 @@ export default function OpenItemsPage() {
             </CardContent>
           </Card>
 
-          {/* Upload Component (Hidden) */}
-          {isAdmin && (
-            <input
-              id="file-upload"
-              type="file"
-              accept=".csv"
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setUploadFile(file);
-                  handleFileUpload();
-                }
-              }}
-            />
-          )}
+          {/* Unified importer available via dialog; hidden direct upload removed */}
 
           {/* Stats/Charts Section */}
           {showStats && (

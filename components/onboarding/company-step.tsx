@@ -62,11 +62,11 @@ export default function CompanyStep({ data, onUpdate, onNext, onBack, isDark }: 
         <div className="flex items-center justify-center mb-6">
           <div className={cn(
             "p-4 rounded-full",
-            isDark ? "bg-blue-900/20" : "bg-blue-50"
+            isDark ? "bg-primary/20" : "bg-primary/10"
           )}>
             <Building className={cn(
               "h-12 w-12",
-              isDark ? "text-blue-400" : "text-blue-600"
+              "text-primary"
             )} />
           </div>
         </div>
@@ -153,8 +153,8 @@ export default function CompanyStep({ data, onUpdate, onNext, onBack, isDark }: 
           <div className={cn(
             "p-4 rounded-lg border",
             isDark 
-              ? "bg-blue-900/10 border-blue-800 text-blue-200" 
-              : "bg-blue-50 border-blue-200 text-blue-800"
+              ? "bg-primary/10 border-primary/20 text-primary" 
+              : "bg-primary/10 border-primary/30 text-primary"
           )}>
             <div className="flex items-start gap-3">
               <Globe className="h-5 w-5 mt-0.5 flex-shrink-0" />

@@ -367,7 +367,7 @@ export default function CloudSecurity() {
               <div className="text-center">
                 <RefreshCw className={cn(
                   "h-8 w-8 animate-spin mx-auto mb-4",
-                  isDark ? "text-blue-400" : "text-blue-600"
+                  "text-primary"
                 )} />
                 <p className={cn(
                   isDark ? "text-gray-400" : "text-gray-500"
@@ -1080,7 +1080,7 @@ function FindingsTable({ items, isDark, onRowClick }: { items: any[]; isDark: bo
                   )}>
                 <td className={cn(
                   "p-3 whitespace-nowrap font-mono text-sm",
-                  isDark ? "text-blue-400" : "text-blue-600"
+                  "text-primary"
                 )}>
                   {r.controlId || "—"}
                 </td>

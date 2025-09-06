@@ -38,6 +38,7 @@ import {
   getStatusBadgeClass 
 } from '@/lib/theme-config';
 import { cn } from '@/lib/utils';
+import ImportDataDialog from '@/components/import-data-dialog';
 
 interface RssFeed {
   id: string;
@@ -538,29 +539,7 @@ export default function RssFeedsPage() {
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh View
                   </Button>
-                  
-                  <input
-                    type="file"
-                    accept=".csv"
-                    style={{ display: 'none' }}
-                    id="csv-upload"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setUploadFile(file);
-                        handleFileUpload();
-                      }
-                    }}
-                  />
-                  <Button 
-                    onClick={() => document.getElementById('csv-upload')?.click()}
-                    size="sm" 
-                    variant="outline"
-                    disabled={uploading}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    {uploading ? 'Importing...' : 'Import CSV'}
-                  </Button>
+                  <ImportDataDialog highlight={['aws_security_hub','secureworks','falcon','threat_advisory','open_items']} triggerLabel="Import Data" />
                 </div>
               )}
             </CardContent>
@@ -904,7 +883,7 @@ export default function RssFeedsPage() {
                                 variant="ghost"
                                 className={cn(
                                   "text-xs",
-                                  item.read ? "text-gray-400" : "text-blue-500"
+                                  item.read ? "text-gray-400" : "text-primary"
                                 )}
                               >
                                 {item.read ? 'Mark Unread' : 'Mark Read'}
@@ -1192,7 +1171,7 @@ export default function RssFeedsPage() {
                               "text-xs",
                               tag === 'Zero-Day' || tag === 'APT' || tag === 'Ransomware' ? "border-red-500 text-red-500" :
                               tag === 'CVE' || tag === 'CVSS' || tag === 'Exploit' ? "border-orange-500 text-orange-500" :
-                              tag === 'Patch' || tag === 'Disclosure' ? "border-blue-500 text-blue-500" :
+                              tag === 'Patch' || tag === 'Disclosure' ? "border-primary text-primary" :
                               ""
                             )}
                           >
@@ -1337,7 +1316,7 @@ export default function RssFeedsPage() {
                     )}>
                       <div className="flex justify-between">
                         <span>Read Status:</span>
-                        <span className={selectedItem.read ? "text-green-500" : "text-blue-500"}>
+                        <span className={selectedItem.read ? "text-green-500" : "text-primary"}>
                           {selectedItem.read ? "Read" : "Unread"}
                         </span>
                       </div>
