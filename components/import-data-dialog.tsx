@@ -48,6 +48,11 @@ export default function ImportDataDialog({ triggerClassName, highlight = [], all
     setProgress(finalValue);
   };
 
+  // Cleanup progress timer on unmount
+  useEffect(() => {
+    return () => { if (progressTimer.current) clearInterval(progressTimer.current); };
+  }, []);
+
   const handleFileUpload = async (file: File) => {
     setUploading(true);
     startProgress();
@@ -213,9 +218,6 @@ export default function ImportDataDialog({ triggerClassName, highlight = [], all
                     )}
                     <span className={cn('text-sm', res.success ? 'text-green-700' : 'text-red-700')}>
                       {res.filename}: {res.message} {res.type ? `— ${res.type}` : ''} {typeof res.rowsProcessed === 'number' ? `• Rows: ${res.rowsProcessed}` : ''}
-  useEffect(() => {
-    return () => { if (progressTimer.current) clearInterval(progressTimer.current); };
-  }, []);
                     </span>
                   </div>
                 </div>
