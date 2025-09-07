@@ -578,3 +578,22 @@ model ToolMetricsPerimeter {
   @@unique([periodMonth])
   @@map("tool_metrics_perimeter")
 }
+
+// Tool Metrics – XDR (Secureworks) monthly aggregates
+model ToolMetricsXdr {
+  id               String   @id @default(cuid())
+  periodMonth      DateTime // First day of the month (UTC)
+  periodQuarter    String   // e.g., "Q3 2025"
+  reportLabel      String?  // From filename label like MMYYYY
+  eventsTb         Float    @default(0)
+  detections       Float    @default(0)
+  triagedEvents    Float    @default(0)
+  investigations   Float    @default(0)
+  incidents        Float    @default(0)
+  raw_json         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([periodMonth])
+  @@map("tool_metrics_xdr")
+}

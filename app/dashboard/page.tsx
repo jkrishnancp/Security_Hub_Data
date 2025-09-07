@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import AuthGuard from '@/lib/auth-guard';
-import NavBar from '@/components/nav-bar';
 import ScorecardBadge from '@/components/scorecard-badge';
 import RadarChart from '@/components/radar-chart';
 import { MultiSelectFilter } from '@/components/multi-select-filter';
@@ -144,7 +143,6 @@ export default function DashboardPage() {
     return (
       <AuthGuard>
         <div>
-          <NavBar />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex items-center justify-center min-h-96">
               <div className="text-center">
@@ -161,7 +159,6 @@ export default function DashboardPage() {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-50">
-        <NavBar />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center mb-8">

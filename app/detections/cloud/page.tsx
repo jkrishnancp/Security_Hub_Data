@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from '@/components/theme-provider';
 import AuthGuard from '@/lib/auth-guard';
-import NavBar from '@/components/nav-bar';
 import { Filter, RefreshCw, Clock, Cloud, ArrowUpDown, ChevronDown, ChevronUp, ChevronDown as ChevronDownIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,7 @@ export default function CloudFindings() {
 
   // Table filters (no time filter, and Support/Sensor Type removed)
   const [tableSeverityFilter, setTableSeverityFilter] = useState<string[]>([]);
-  const [tableControlStatusFilter, setTableControlStatusFilter] = useState<string>("ALL");
+  const [tableControlStatusFilter, setTableControlStatusFilter] = useState<string>("Failed");
   const [tableServiceFilter, setTableServiceFilter] = useState<string>("ALL");
   const [tableComplianceFilter, setTableComplianceFilter] = useState<string>("ALL");
 
@@ -168,7 +167,7 @@ export default function CloudFindings() {
   return (
     <AuthGuard>
       <div className={cn("min-h-screen transition-colors duration-200", isDark ? "bg-gray-900" : "bg-gray-50")}> 
-        <NavBar />
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header + Search */}
           <div className="flex justify-between items-start mb-8">
@@ -344,7 +343,7 @@ export default function CloudFindings() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => { setTableSeverityFilter([]); setTableControlStatusFilter("ALL"); setTableServiceFilter("ALL"); setTableComplianceFilter("ALL"); }}
+                  onClick={() => { setTableSeverityFilter([]); setTableControlStatusFilter("Failed"); setTableServiceFilter("ALL"); setTableComplianceFilter("ALL"); }}
                 >
                   Clear Filters
                 </Button>

@@ -83,6 +83,43 @@ export async function POST(request: NextRequest) {
         deletedCount = awsResult.count;
         break;
 
+      // Tool Metrics databases
+      case 'tool_metrics_email':
+        tableName = 'Tool Metrics – Email Protection';
+        {
+          const res = await prisma.toolMetricsEmail.deleteMany({
+            where: {
+              periodMonth: mode === 'keep_recent' ? { lt: cutoffDate } : { gt: cutoffDate },
+            },
+          });
+          deletedCount = res.count;
+        }
+        break;
+
+      case 'tool_metrics_perimeter':
+        tableName = 'Tool Metrics – Perimeter Protection';
+        {
+          const res = await prisma.toolMetricsPerimeter.deleteMany({
+            where: {
+              periodMonth: mode === 'keep_recent' ? { lt: cutoffDate } : { gt: cutoffDate },
+            },
+          });
+          deletedCount = res.count;
+        }
+        break;
+
+      case 'tool_metrics_xdr':
+        tableName = 'Tool Metrics – XDR (Secureworks)';
+        {
+          const res = await prisma.toolMetricsXdr.deleteMany({
+            where: {
+              periodMonth: mode === 'keep_recent' ? { lt: cutoffDate } : { gt: cutoffDate },
+            },
+          });
+          deletedCount = res.count;
+        }
+        break;
+
       case 'scorecard_ratings':
         tableName = 'Scorecard Ratings';
         const ratingsResult = await prisma.scorecardRating.deleteMany({
@@ -167,7 +204,7 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json({ 
           error: 'Invalid database type',
-          details: ['Supported types: secureworks, falcon, aws_security_hub, scorecard_ratings, scorecard_issues, open_items, threat_advisories, ingestion_logs, all_security'] 
+          details: ['Supported types: secureworks, falcon, aws_security_hub, scorecard_ratings, scorecard_issues, open_items, threat_advisories, ingestion_logs, tool_metrics_email, tool_metrics_perimeter, tool_metrics_xdr, all_security'] 
         }, { status: 400 });
     }
 
@@ -209,7 +246,10 @@ export async function GET() {
       issuesCount,
       openItemsCount,
       threatsCount,
-      logsCount
+      logsCount,
+      tmEmailCount,
+      tmPerimCount,
+      tmXdrCount,
     ] = await Promise.all([
       prisma.secureworksAlert.count(),
       prisma.falconDetection.count(),
@@ -218,7 +258,11 @@ export async function GET() {
       prisma.scorecardIssueDetail.count(),
       prisma.openItem.count(),
       prisma.threatAdvisory.count(),
-      prisma.ingestionLog.count()
+      prisma.ingestionLog.count(),
+      // Tool Metrics tables
+      prisma.toolMetricsEmail.count(),
+      prisma.toolMetricsPerimeter.count(),
+      prisma.toolMetricsXdr.count(),
     ]);
 
     const databases = [
@@ -270,6 +314,25 @@ export async function GET() {
         count: logsCount,
         description: 'File upload and processing history logs'
       },
+      // Tool Metrics databases
+      {
+        value: 'tool_metrics_email',
+        label: 'Tool Metrics – Email Protection',
+        count: tmEmailCount,
+        description: 'Monthly aggregates for inbound, blocked, and delivered emails',
+      },
+      {
+        value: 'tool_metrics_perimeter',
+        label: 'Tool Metrics – Perimeter Protection',
+        count: tmPerimCount,
+        description: 'Monthly aggregates for perimeter inbound, blocked, and delivered totals',
+      },
+      {
+        value: 'tool_metrics_xdr',
+        label: 'Tool Metrics – XDR (Secureworks)',
+        count: tmXdrCount,
+        description: 'Monthly aggregates for XDR events, detections, and investigations',
+      },
       { 
         value: 'all_security', 
         label: 'All Security Data', 
@@ -279,7 +342,7 @@ export async function GET() {
     ];
 
     return NextResponse.json({
-      databases: databases.filter(db => db.count > 0), // Only show tables with data
+      databases, // Show all tables, even if currently empty
       totalRecords: databases.reduce((sum, db) => sum + db.count, 0)
     });
 

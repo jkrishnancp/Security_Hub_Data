@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
 import AuthGuard from '@/lib/auth-guard';
-import NavBar from '@/components/nav-bar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -292,7 +291,7 @@ export default function ThreatAdvisoriesPage() {
     return (
       <AuthGuard>
         <div>
-          <NavBar />
+          
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex items-center justify-center min-h-96">
               <div className="text-center">
@@ -317,7 +316,7 @@ export default function ThreatAdvisoriesPage() {
         "min-h-screen transition-colors duration-200",
         isDark ? "bg-gray-900" : "bg-gray-50"
       )}>
-        <NavBar />
+        
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-start mb-8">

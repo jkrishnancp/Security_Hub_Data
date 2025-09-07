@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useSession } from 'next-auth/react';
 import { useTheme } from '@/components/theme-provider';
 import AuthGuard from '@/lib/auth-guard';
-import NavBar from '@/components/nav-bar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -222,7 +221,7 @@ export default function ProfilePage() {
         "min-h-screen transition-colors duration-200",
         isDark ? "bg-gray-900" : "bg-gray-50"
       )}>
-        <NavBar />
+        
         
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
