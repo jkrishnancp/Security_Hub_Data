@@ -46,8 +46,26 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Default route redirect
+    // Default route redirect - check onboarding status first
     if (pathname === '/') {
+      // Check if system needs onboarding
+      try {
+        const onboardingResponse = await fetch(new URL('/api/onboarding/status', request.url));
+        if (onboardingResponse.ok) {
+          const { isSetup } = await onboardingResponse.json();
+          if (!isSetup) {
+            // System needs onboarding
+            const onboardingUrl = new URL('/onboarding', request.url);
+            return NextResponse.redirect(onboardingUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status in middleware:', error);
+        // On error, allow the request to continue to the home page
+        return NextResponse.next();
+      }
+
+      // System is set up, redirect to dashboard
       const dashboardUrl = new URL('/dashboard', request.url);
       return NextResponse.redirect(dashboardUrl);
     }
