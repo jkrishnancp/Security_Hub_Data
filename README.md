@@ -106,7 +106,7 @@ docker-compose -f docker-compose.prod.yml up -d
 npm install
 
 # Set up environment variables
-cp .env.production .env.local
+cp .env.production .env
 
 # Generate a secure secret for NextAuth
 openssl rand -base64 32
@@ -124,6 +124,16 @@ npx prisma generate
 
 # Start development server
 npm run dev
+
+or
+
+nohup npm run dev > app.log 2>&1 &
+
+# Stop development server
+
+ps aux | grep "npm run dev" #Find the PID
+pkill -f "npm run dev" #one-liner  to kill all dev servers
+
 
 # Access at http://localhost:3000
 ```
